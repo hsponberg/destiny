@@ -1,0 +1,451 @@
+<style>
+td {
+    padding: 4px;
+    padding-left: 8px;
+}
+#main {
+    padding-left: 20px;
+}
+.mocks {
+    text-align: right;
+}
+.mocks select {
+    width: 150px;
+}
+.statusCode {
+    text-align: right;
+}
+.latency {
+    text-align: right;
+}
+option {
+    direction: ltr;
+}
+.colorEven tr:nth-child(even) {
+    background-color: #ddd;
+}
+#main {
+    padding-bottom: 50px;
+}
+</style>
+
+<h1>Destiny Api</h1>
+<div id="main">
+    <p style="font-weight: bold">
+    Environment
+    <select id="environmentSelector">
+      <option value="dev">Dev</option>
+      <option value="staging">Staging</option>
+    </select>
+    <span id="dependPointEnvironment" style="margin-left: 50px">
+        DependPoint Environment
+        <select id="dependPointEnvironmentSelector">
+          <option value="production">Production</option>
+        </select>
+    </span>
+    </p>
+    <h2>DependPoint Mocks</h2>
+    <table id="dependPoints" class="colorEven">
+        <tr>
+            <th>Endpoint</th>
+            <th>Mock</th>
+            <th>Status Code</th>
+            <th>Latency</th>
+        </tr>
+    </table>
+    <h2>DependPoint Interceptors</h2>
+    <table id="dependInterceptors" class="colorEven">
+        <tr>
+            <th>Endpoint</th>
+            <th>Interceptor</th>
+            <th>Status Code</th>
+            <th>Latency</th>
+        </tr>
+    </table>
+    <div id="endpointMocks">
+        <h2>Endpoint Mocks</h2>
+        <table id="endpoints" class="colorEven">
+            <tr>
+                <th>Endpoint</th>
+                <th>Mock</th>
+                <th>Status Code</th>
+                <th>Latency</th>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<script>
+
+$(function() {
+    
+    loadEndpoints();
+
+});
+
+function loadEndpoints() {
+    
+    var options = {};
+    $.getJSON("/api/endpoints", options, function(data) {
+
+        var buf = '';
+
+        for (var i in data) {
+
+            var ep = data[i];
+
+            buf += '<tr>';
+            
+            buf += '<td>' + ep.path + '</td>';
+            
+            buf += '<td class="mocks">';
+            buf += '<select class="mockSelector" data-path="' + ep.path + '">';
+            buf += '  <option value="-1">- off -</option>';
+            for (var k in ep.mocks) {
+                var suffix = (ep.mocks[k].type == 'js') ? ' [JS]' : '';
+                var name = ep.mocks[k].name;
+                name = name.substring(0, name.indexOf("."));
+                buf += '  <option value="' + ep.mocks[k].name + '">' + camelCaseToTitleCase(name) + suffix + '</option>';
+            }
+            buf += '</select>';
+            buf += '</td>';
+
+            buf += '<td class="statusCode">';
+            buf += '<select class="statusCodeSelector" data-path="' + ep.path + '">';
+            buf += '  <option value="200">200 OK</option>';
+            buf += '  <option value="201">201 Created</option>';
+            buf += '  <option value="204">204 No Content</option>';
+            buf += '  <option value="304">304 Not Modified</option>';
+            buf += '  <option value="400">400 Bad Request</option>';
+            buf += '  <option value="401">401 Unauthorized</option>';
+            buf += '  <option value="403">403 Forbidden</option>';
+            buf += '  <option value="404">404 Not Found</option>';
+            buf += '  <option value="409">409 Conflict</option>';
+            buf += '  <option value="500">500 Internal Server Error</option>';
+            buf += '</select>';
+            buf += '</td>';
+
+            buf += '<td class="latency">';
+            buf += '<select class="latencySelector" data-path="' + ep.path + '" dir="rtl">';
+            buf += '  <option value="0">0</option>';
+            buf += '  <option value="100">100 ms</option>';
+            buf += '  <option value="200">200 ms</option>';
+            buf += '  <option value="300">300 ms</option>';
+            buf += '  <option value="500">500 ms</option>';
+            buf += '  <option value="1000">1 sec</option>';
+            buf += '  <option value="2000">2 sec</option>';
+            buf += '  <option value="3000">3 sec</option>';
+            buf += '  <option value="5000">5 sec</option>';
+            buf += '  <option value="10000">10 sec</option>';
+            buf += '  <option value="20000">20 sec</option>';
+            buf += '  <option value="30000">30 sec</option>';
+            buf += '</select>';
+            buf += '</td>';            
+        }
+
+        $("#endpoints").append(buf);
+
+        loadDependPoints();
+    });
+}
+
+function loadDependPoints() {
+
+    var options = {};
+    $.getJSON("/api/dependPoints", options, function(data) {
+
+        var buf = '';
+        var buf2 = '';
+
+        for (var i in data) {
+
+            var ep = data[i];
+
+            buf += makeDependencyRow(ep);
+            buf2 += makeDependInterceptorRow(ep);
+        }
+
+        $("#dependPoints").append(buf);
+        $("#dependInterceptors").append(buf2);
+
+        configureActions();
+
+        loadDependPointEnvironments();
+    });
+}
+
+function makeDependencyRow(ep) {
+
+    var buf = '';
+
+    buf += '<tr>';
+    
+    buf += '<td>' + ep.path + '</td>';
+    
+    buf += '<td class="mocks">';
+    buf += '<select class="mockSelector" data-path="' + ep.path + '">';
+    buf += '  <option value="-1">- off -</option>';
+    for (var k in ep.mocks) {
+        var suffix = (ep.mocks[k].type == 'js') ? ' [JS]' : '';
+        var name = ep.mocks[k].name;
+        name = name.substring(0, name.indexOf("."));
+        buf += '  <option value="' + ep.mocks[k].name + '">' + camelCaseToTitleCase(name) + suffix + '</option>';
+    }
+    buf += '</select>';
+    buf += '</td>';
+
+    buf += '<td class="statusCode">';
+    buf += '<select class="statusCodeSelector" data-path="' + ep.path + '">';
+    buf += '  <option value="200">200 OK</option>';
+    buf += '  <option value="201">201 Created</option>';
+    buf += '  <option value="204">204 No Content</option>';
+    buf += '  <option value="304">304 Not Modified</option>';
+    buf += '  <option value="400">400 Bad Request</option>';
+    buf += '  <option value="401">401 Unauthorized</option>';
+    buf += '  <option value="403">403 Forbidden</option>';
+    buf += '  <option value="404">404 Not Found</option>';
+    buf += '  <option value="409">409 Conflict</option>';
+    buf += '  <option value="500">500 Internal Server Error</option>';
+    buf += '</select>';
+    buf += '</td>';
+
+    buf += '<td class="latency">';
+    buf += '<select class="latencySelector" data-path="' + ep.path + '" dir="rtl">';
+    buf += '  <option value="0">0</option>';
+    buf += '  <option value="100">100 ms</option>';
+    buf += '  <option value="200">200 ms</option>';
+    buf += '  <option value="300">300 ms</option>';
+    buf += '  <option value="500">500 ms</option>';
+    buf += '  <option value="1000">1 sec</option>';
+    buf += '  <option value="2000">2 sec</option>';
+    buf += '  <option value="3000">3 sec</option>';
+    buf += '  <option value="5000">5 sec</option>';
+    buf += '  <option value="10000">10 sec</option>';
+    buf += '  <option value="20000">20 sec</option>';
+    buf += '  <option value="30000">30 sec</option>';
+    buf += '</select>';
+    buf += '</td>';  
+
+    buf += '</tr>';   
+
+    return buf; 
+}
+
+function makeDependInterceptorRow(ep) {
+
+    var buf = '';
+
+    buf += '<tr>';
+    
+    buf += '<td>' + ep.path + '</td>';
+    
+    var pathPrefix = 'int/';
+
+    buf += '<td class="mocks">';
+    buf += '<select class="mockSelector" data-path="' + pathPrefix + ep.path + '">';
+    buf += '  <option value="-1">- off -</option>';
+    for (var k in ep.dependInterceptors) {
+        var name = ep.dependInterceptors[k].name;
+        name = name.substring(0, name.indexOf("."));
+        buf += '  <option value="' + ep.dependInterceptors[k].name + '">' + camelCaseToTitleCase(name) + '</option>';
+    }
+    buf += '</select>';
+    buf += '</td>';
+
+    buf += '<td class="statusCode">';
+    buf += '<select class="statusCodeSelector" data-path="' + pathPrefix + ep.path + '">';
+    buf += '  <option value="200">200 OK</option>';
+    buf += '  <option value="201">201 Created</option>';
+    buf += '  <option value="204">204 No Content</option>';
+    buf += '  <option value="304">304 Not Modified</option>';
+    buf += '  <option value="400">400 Bad Request</option>';
+    buf += '  <option value="401">401 Unauthorized</option>';
+    buf += '  <option value="403">403 Forbidden</option>';
+    buf += '  <option value="404">404 Not Found</option>';
+    buf += '  <option value="409">409 Conflict</option>';
+    buf += '  <option value="500">500 Internal Server Error</option>';
+    buf += '</select>';
+    buf += '</td>';
+
+    buf += '<td class="latency">';
+    buf += '<select class="latencySelector" data-path="' + pathPrefix + ep.path + '" dir="rtl">';
+    buf += '  <option value="0">0</option>';
+    buf += '  <option value="100">100 ms</option>';
+    buf += '  <option value="200">200 ms</option>';
+    buf += '  <option value="300">300 ms</option>';
+    buf += '  <option value="500">500 ms</option>';
+    buf += '  <option value="1000">1 sec</option>';
+    buf += '  <option value="2000">2 sec</option>';
+    buf += '  <option value="3000">3 sec</option>';
+    buf += '  <option value="5000">5 sec</option>';
+    buf += '  <option value="10000">10 sec</option>';
+    buf += '  <option value="20000">20 sec</option>';
+    buf += '  <option value="30000">30 sec</option>';
+    buf += '</select>';
+    buf += '</td>';  
+
+    buf += '</tr>';   
+
+    return buf; 
+}
+
+function loadMockSettings() {
+
+    var options = {};
+    $.getJSON("/api/mock", options, function(data) {
+
+        $(".mockSelector").val(-1);
+        $(".statusCode").val(200);
+        $(".latency").val(0);
+
+        for (var i in data) {
+
+            var ep = data[i];
+
+            var keypath = ep.keypath.split(":");
+
+            if (keypath[0] != $("#environmentSelector").val()) {
+                continue;
+            }
+
+            $('.mocks [data-path="' + keypath[1] + '"]').val(ep.mock);
+            $('.statusCode [data-path="' + keypath[1] + '"]').val(ep.statusCode);
+            $('.latency [data-path="' + keypath[1] + '"]').val(ep.latency);
+        }
+
+        updateControlStates();
+    });
+}
+
+function loadDependPointEnvironments() {
+
+    var options = {};
+    $.getJSON("/api/dependPointEnvironments", options, function(data) {
+
+        for (var i in data.list) {
+
+            var env = data.list[i];
+
+            var buf = '<option value="' + env + '">' + env + '</option>';
+            $("#dependPointEnvironmentSelector").append(buf);
+        }
+
+        $("#dependPointEnvironmentSelector").val(data.selected);
+
+        loadMockSettings();
+    });
+}
+
+function configureActions() {
+
+    $("#environmentSelector").on("change", function() {
+
+        loadMockSettings();
+    })
+
+    $(".mockSelector").on("change", function() {
+
+        settingChanged(this);
+    });
+
+    $(".statusCodeSelector").on("change", function() {
+
+       settingChanged(this); 
+    });
+
+    $(".latencySelector").on("change", function() {
+
+        settingChanged(this);
+    });
+
+    $("#dependPointEnvironmentSelector").on("change", function() {
+
+        dependPointEnvironmentChanged(this);
+    });
+}
+
+function settingChanged(control) {
+
+    var path = $(control).attr("data-path");
+
+    var data = {};
+    var mockSettings = {};
+    data.mock = mockSettings;
+    mockSettings.keypath = $("#environmentSelector").val() + ":" + path;
+    mockSettings.mock = $('.mocks [data-path="' + path + '"]').val();
+    mockSettings.statusCode = parseInt($('.statusCode [data-path="' + path + '"]').val());
+    mockSettings.latency = parseInt($('.latency [data-path="' + path + '"]').val());
+
+    updateControlStates();
+
+    $.ajax({
+        type: "PUT",
+        url: "/api/mock",
+        data: data
+    }).done(function() {
+    }).fail(function(error) {
+        console.log(error);
+        alert("Unable to apply setting");
+    });
+}
+
+function dependPointEnvironmentChanged(control) {
+
+    var data = {};
+    data.env = $("#dependPointEnvironmentSelector").val();
+
+    $.ajax({
+        type: "PUT",
+        url: "/api/dependPointEnvironment",
+        data: data
+    }).done(function() {
+    }).fail(function(error) {
+        console.log(error);
+        alert("Unable to apply endpoint environment");
+    });
+}
+
+function updateControlStates() {
+
+    $(".mockSelector").each(function() {
+        var path = $(this).attr("data-path");
+        if ($(this).val() == -1) {
+            $('.statusCode [data-path="' + path + '"]').prop('disabled', 'disabled').css('opacity', '0');
+            $('.latency [data-path="' + path + '"]').prop('disabled', 'disabled').css('opacity', '0');
+        } else {
+            $('.statusCode [data-path="' + path + '"]').prop('disabled', false).css('opacity', '1');
+            $('.latency [data-path="' + path + '"]').prop('disabled', false).css('opacity', '1');
+        }
+    });
+
+    if ($("#environmentSelector").val() == "dev") {
+        $("#dependPointEnvironment").show();
+        $("#endpointMocks").show();
+    } else {
+        $("#dependPointEnvironment").hide();
+        $("#endpointMocks").hide();
+    }
+}
+
+// http://stackoverflow.com/questions/7225407/convert-camelcasetext-to-camel-case-text
+function camelCaseToTitleCase(in_camelCaseString) {
+
+    var result = in_camelCaseString                         // "ToGetYourGEDInTimeASongAboutThe26ABCsIsOfTheEssenceButAPersonalIDCardForUser456ContainingABC26TimesIsNotAsEasyAs123"
+        .replace(/([a-z])([A-Z][a-z])/g, "$1 $2")           // "To Get YourGEDIn TimeASong About The26ABCs IsOf The Essence ButAPersonalIDCard For User456ContainingABC26Times IsNot AsEasy As123"
+        .replace(/([A-Z][a-z])([A-Z])/g, "$1 $2")           // "To Get YourGEDIn TimeASong About The26ABCs Is Of The Essence ButAPersonalIDCard For User456ContainingABC26Times Is Not As Easy As123"
+        .replace(/([a-z])([A-Z]+[a-z])/g, "$1 $2")          // "To Get Your GEDIn Time ASong About The26ABCs Is Of The Essence But APersonal IDCard For User456ContainingABC26Times Is Not As Easy As123"
+        .replace(/([A-Z]+)([A-Z][a-z][a-z])/g, "$1 $2")     // "To Get Your GEDIn Time A Song About The26ABCs Is Of The Essence But A Personal ID Card For User456ContainingABC26Times Is Not As Easy As123"
+        .replace(/([a-z]+)([A-Z0-9]+)/g, "$1 $2")           // "To Get Your GEDIn Time A Song About The 26ABCs Is Of The Essence But A Personal ID Card For User 456Containing ABC26Times Is Not As Easy As 123"
+        // Note: the next regex includes a special case to exclude plurals of acronyms, e.g. "ABCs"
+        .replace(/([A-Z]+)([A-Z][a-rt-z][a-z]*)/g, "$1 $2") // "To Get Your GED In Time A Song About The 26ABCs Is Of The Essence But A Personal ID Card For User 456Containing ABC26Times Is Not As Easy As 123"
+        .replace(/([0-9])([A-Z][a-z]+)/g, "$1 $2")          // "To Get Your GED In Time A Song About The 26ABCs Is Of The Essence But A Personal ID Card For User 456 Containing ABC26 Times Is Not As Easy As 123"  
+        .replace(/([A-Z]+)([0-9]+)/g, "$1 $2")              // "To Get Your GED In Time A Song About The 26ABCs Is Of The Essence But A Personal ID Card For User 456 Containing ABC 26 Times Is Not As Easy As 123"
+        .replace(/([0-9]+)([A-Z]+)/g, "$1 $2")              // "To Get Your GED In Time A Song About The 26 ABCs Is Of The Essence But A Personal ID Card For User 456 Containing ABC 26 Times Is Not As Easy As 123"
+        .trim();
+
+    // capitalize the first letter
+    return result.charAt(0).toUpperCase() + result.slice(1);
+}
+
+</script>
+

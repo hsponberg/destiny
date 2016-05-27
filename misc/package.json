@@ -1,0 +1,29 @@
+{
+  "name": "destiny-api-sample",
+  "private": true,
+  "version": "0.0.0",
+  "description": "an experience layer api",
+  "keywords": [],
+  "dependencies": {
+    "md5": "^2.1.0",
+    "supertest": "^1.2.0",
+    "tape": "^4.5.1"
+  },
+  "scripts": {
+    "test": "node test/all.js",
+    "setupLocalJs": "cp .destiny/destiny/config/local.js.bak .destiny/destiny/config/local.js",
+    "installDestinyApi": "cd .destiny/destiny && npm install",
+    "installApi": "cd .destiny/destiny && node installApi -e \"console.log(process.cwd())\"",
+    "postinstall": "git clone git@github.org:hsponberg/destiny.git; mv destiny .destiny; npm run setupLocalJs; npm run installDestinyApi; npm run installApi",
+    "api": "cd .destiny/destiny && node app.js",
+    "stage": "cd .destiny/destiny && node stage",
+    "unstage": "cd .destiny/destiny && node unstage",
+    "release": "cd .destiny/destiny && node release"
+  },
+  "main": "none.js",
+  "repository": {
+    "type": "git"
+  },
+  "author": "hsponberg",
+  "license": ""
+}
