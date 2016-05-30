@@ -67,7 +67,7 @@ results(SPORT, function(status, response, workflow) {
 
 Implement the exception handler function, by calling ```exception``` and passing in the DependPoint and your handler. This function is invoked when the call times out or the http response code is not 200-299 from a call made to a DependPoint. The function accepts these parameters:
 
-* **status**: contains the response http status code and response headers
+* **status**: contains the response http status code and response headers. In the event of a timeout, status.code = 0 and status.timedOut = true. In the event of an error, status.error will contain the error from the DependPoint
 * **response**: contains the response body (usually a JSON object)
 * **workflow**: this object controls the lifetime flow of the call made to this Endpoint. You can use this object to make calls to DependPoints and write data to your response.
 
