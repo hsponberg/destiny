@@ -479,7 +479,7 @@ The value is a JSON string object that contains the following parameters
 * **depend** - The global const DependPoint being mocked
 * **mock** - The corresponding mock
 * **status** (optional) - The http response code
-* **latency** (latency) - The latency of the request
+* **latency** (optional) - The latency of the request
 
 Example unit test using tape and supertest
 
