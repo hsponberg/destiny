@@ -468,11 +468,11 @@ Under to hood, the framework will delete the tag _api_staging_v${full version nu
 
 The browser admin page to configure mocks and interceptors is not available in production. Automated testing of the mobile app sometimes needs the ability to request a specific set of data. This is made possible in the request header.
 
-In order to use this functionality, the request header must contain a test authorization token, ```hsapi-test-auth```
+In order to use this functionality, the request header must contain a test authorization token, ```destiny-test-auth```
 
 This must match the ```testAuthToken``` configured in sails local.js or production.js
 
-Then any number of mocks may be specified, by passing in request header parameters in the format of ```hsapi-test-x``` where x starts at 1 and goes up to the number of mocks specified.
+Then any number of mocks may be specified, by passing in request header parameters in the format of ```destiny-test-x``` where x starts at 1 and goes up to the number of mocks specified.
 
 The value is a JSON string object that contains the following parameters
 
@@ -490,9 +490,9 @@ var api = supertest('http://localhost:8081');
 
 test('Low tide', function(t) {
 	api.get('/api/dev/wunderground')
-		.set('hsapi-test-auth', authToken)
-		.set('hsapi-test-1', JSON.stringify({ depend: 'wunderground_tide', mock: 'lowTide.json'}))
-		.set('hsapi-test-2', JSON.stringify({ depend: 'wunderground_conditions', mock: 'default.json'}))
+		.set('destiny-test-auth', authToken)
+		.set('destiny-test-1', JSON.stringify({ depend: 'wunderground_tide', mock: 'lowTide.json'}))
+		.set('destiny-test-2', JSON.stringify({ depend: 'wunderground_conditions', mock: 'default.json'}))
 		.expect(200)
 		.expect('Content-Type', /json/)
 		.end(function(err, res) {
