@@ -234,8 +234,6 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 
 	var saveEndpoint = endpoint;
 
-	var query = querystring.stringify(spec.params);
-
 	var self = this;
 
 	var isHttps = endpoint.indexOf("https") == 0;
@@ -294,11 +292,20 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 	    headers: headers
 	};
 
+	var query = querystring.stringify(spec.params);
 	if (options.method.toLowerCase() == "post") {
-		options.headers['Content-Type'] = 'application/x-www-form-urlencoded';
+
+		var contentType = 'application/x-www-form-urlencoded';
+		if (spec.bodyEncoding == 'application/json') {
+		  contentType = 'application/json';
+		  query = JSON.stringify(spec.params);
+		}
+
+		options.headers['Content-Type'] = contentType;
 		options.headers['Content-Length'] = Buffer.byteLength(query);
 	} else if (query !== '') {
-		options.path = options.path + '?' + query;
+		var sep = options.path.indexOf('?') != -1 ? '&' : '?';
+		options.path = options.path + sep + query;
 	}
 
 	var protocol = isHttps ? https : http;
