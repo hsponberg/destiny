@@ -52,6 +52,7 @@ ProcessRequest.prototype.processRequest = function(source) {
 
 	if (this.processInput(this.req)) {
 		self.workflow.req.headers = this.req.headers;
+		self.workflow.req.method = this.req.method;
 		this.safe(this.source.currentEndpoint, "request()", function() { 
 			self.context._request(self.workflow.req, self.workflow); 
 		});
@@ -586,7 +587,7 @@ ProcessRequest.prototype.processInput = function(req) {
 			if (result.error) {
 				return;
 			}
-			this.workflow.req[k] = result.val;
+			this.workflow.req.params[k] = result.val;
 		}
 	}
 	for (var k in this.context.input.optional) {
@@ -595,7 +596,7 @@ ProcessRequest.prototype.processInput = function(req) {
 			if (result.error) {
 				return;
 			}
-			this.workflow.req[k] = result.val;
+			this.workflow.req.params[k] = result.val;
 		}
 	}
 	return true;
@@ -726,7 +727,8 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_idPath: [],
 		_outputHeaders : {},
 		req : {
-			headers: {}
+			headers: {},
+			params: {}
 		},
 		hasError : function() {
 			return self.workflow._error !== undefined;
