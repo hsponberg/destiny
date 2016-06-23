@@ -222,7 +222,7 @@ function buildMapRecursive(versionPath, obj) {
 
 			var filePath = file;
 
-			if (file.endsWith("$")) {
+			if (file.endsWith("$") && file.length > 1) { // ends with $ and is not just $
 				
 				var newObj = getOrCreateIdGroup(obj, file);
 				file = "$";
@@ -241,7 +241,7 @@ function buildMapRecursive(versionPath, obj) {
 			var filePath = file;
 			var i = file.indexOf('.js'); // Remove .js
 			file = file.substring(0, i);
-			if (file.endsWith("$")) {
+			if (file.endsWith("$") && file.length > 1) { // ends with $ and is not just $
 				
 				var newObj = getOrCreateIdGroup(obj, file);
 				newObj._files['$'] = {
