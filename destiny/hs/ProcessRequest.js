@@ -23,6 +23,7 @@ ProcessRequest.prototype.processRequest = function(source) {
 
 	this.workflow = this.initWorkflow(this);
 	this.workflow._idPath = source.idPath;
+	this.workflow._idMap = source.idMap;
 
 	this.context = this.initContext(this.LOG);
 	this.findMock = source.findMock;
@@ -732,6 +733,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_renderedResponse : false,
 		_finalizing: false,
 		_idPath: [],
+		_idMap: {},
 		_outputHeaders : {},
 		req : {
 			headers: {},
@@ -809,6 +811,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			} else {
 				return self.workflow._idPath[index];
 			}
+		},
+		idMap: function(paramName) {
+			return self.workflow._idMap[paramName];
 		}
 	}
 	return workflow;

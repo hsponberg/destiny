@@ -121,7 +121,8 @@ function findEndpointFromPath(path, testAuthorized) {
 	var tokenStartI = 2;
 	var ids = [];
 	var path = [];
-	var currentEndpoint = findEndpointRecursive(destiny.versions[versionKey].routeMap, tokens, tokenStartI, path, ids);
+	var idMap = {};
+	var currentEndpoint = findEndpointRecursive(destiny.versions[versionKey].routeMap, tokens, tokenStartI, path, ids, idMap);
 
 	if (!currentEndpoint) {
 		return undefined;
@@ -132,6 +133,7 @@ function findEndpointFromPath(path, testAuthorized) {
 	sources.currentEndpoint = currentEndpoint;
 	sources.path = makePath(path, 0);
 	sources.idPath = ids;
+	sources.idMap = idMap;
 	sources.globals = destiny.globals[versionKey];
 	sources.mockVersion = undefined;
 	sources.version = versionKey;
@@ -165,13 +167,17 @@ function makePath(tokens, i) {
 	return path;
 }
 
-function findEndpointRecursive(obj, tokens, i, path, ids) {
+function findEndpointRecursive(obj, tokens, i, path, ids, idMap) {
 	if (obj == null) {
 		return undefined;
 	} else if (i == tokens.length - 1) {
 		if (obj._files[tokens[i]] === undefined && obj._files["$"] !== undefined) {
 			path.push("$");
-			ids.push(asNumOrStr(tokens[i]));
+			var restId = asNumOrStr(tokens[i]);
+			ids.push(restId);
+			if (obj.restParamName) {
+				idMap[obj.restParamName] = restId;
+			}
 			return obj._files["$"];
 		} else {
 			path.push(tokens[i]);
@@ -180,11 +186,15 @@ function findEndpointRecursive(obj, tokens, i, path, ids) {
 	} else {
 		if (obj[tokens[i]] === undefined && obj["$"] !== undefined) {
 			path.push("$");
-			ids.push(asNumOrStr(tokens[i]));
-			return findEndpointRecursive(obj["$"], tokens, i + 1, path, ids);			
+			var restId = asNumOrStr(tokens[i]);
+			ids.push(restId);
+			if (obj.restParamName) {
+				idMap[obj.restParamName] = restId;
+			}
+			return findEndpointRecursive(obj["$"], tokens, i + 1, path, ids, idMap);			
 		} else {
 			path.push(tokens[i]);
-			return findEndpointRecursive(obj[tokens[i]], tokens, i + 1, path, ids);			
+			return findEndpointRecursive(obj[tokens[i]], tokens, i + 1, path, ids, idMap);			
 		}
 	}
 }
@@ -222,9 +232,23 @@ function buildMapRecursive(versionPath, obj) {
 
 			var filePath = file;
 
-			if (file.endsWith("$") && file.length > 1) { // ends with $ and is not just $
+			var restParamName = undefined;
+			var wI = file.indexOf('$');
+			if (wI !== -1) {
+				restParamName = file.substring(wI + 1);
+				if (restParamName === '') {
+					restParamName = undefined;
+				}
+			}
+
+			if (file.indexOf("$") > 0 && file.length > 1) { // contains $ and is not just $ (doesn't start with $)
 				
 				var newObj = getOrCreateIdGroup(obj, file);
+
+				if (restParamName !== undefined) {
+					newObj.restParamName = restParamName;
+				}
+
 				file = "$";
 
 				var newObj2 = {};
@@ -232,6 +256,14 @@ function buildMapRecursive(versionPath, obj) {
 				newObj[file] = newObj2;
 				buildMapRecursive(path.join(versionPath, filePath), newObj2);
 			} else {
+
+				if (file.indexOf("$") === 0) {
+					if (restParamName !== undefined) {
+						obj.restParamName = restParamName;
+					}					
+					file = "$";
+				}
+
 				var newObj = {};
 				newObj._files = {};
 				obj[file] = newObj;
@@ -241,14 +273,37 @@ function buildMapRecursive(versionPath, obj) {
 			var filePath = file;
 			var i = file.indexOf('.js'); // Remove .js
 			file = file.substring(0, i);
-			if (file.endsWith("$") && file.length > 1) { // ends with $ and is not just $
+
+			var restParamName = undefined;
+			var wI = file.indexOf('$');
+			if (wI !== -1) {
+				restParamName = file.substring(wI + 1);
+				if (restParamName === '') {
+					restParamName = undefined;
+				}
+			}
+
+			if (file.indexOf("$") > 0 && file.length > 1) { // contains $ and is not just $ (doesn't start with $)
 				
 				var newObj = getOrCreateIdGroup(obj, file);
+
+				if (restParamName !== undefined) {
+					newObj.restParamName = restParamName;
+				}
+
 				newObj._files['$'] = {
 					filename: filePath,
 					content: fs.readFileSync(path.join(versionPath, filePath))
 				};
 			} else {
+
+				if (file.indexOf("$") === 0) {
+					if (restParamName !== undefined) {
+						obj.restParamName = restParamName;
+					}					
+					file = "$";
+				}
+
 				obj._files[file.substring(0, i)] = {
 					filename: filePath,
 					content: fs.readFileSync(path.join(versionPath, filePath))
@@ -557,7 +612,11 @@ function getVersionKey(name, buildVersionToMaxBugVersion) {
 
 function getOrCreateIdGroup(obj, file) {
 
-	file = file.substring(0, file.length - 1);
+	var origFile = file;
+
+	var i = file.indexOf('$');
+
+	file = file.substring(0, i);
 
 	var exists = obj[file];
 	if (exists !== undefined) {
