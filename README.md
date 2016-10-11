@@ -289,7 +289,7 @@ Other DependPoint environments can also be specified by adding files with enviro
 
 Node Modules can be written and made available to all Endpoints, JS mocks, and Interceptors. All files placed into the endpoints/_global folder are available using the include function. 
 
-Modules are created when the server starts and lives in memory
+Modules are created when the server starts and live in memory
 
 For example, in an Endpoint js, to include the node module in endpoints/_global/util.js
 
