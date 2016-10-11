@@ -257,6 +257,19 @@ req.idPath(1); // returns 727
 req.idPath();  // returns [5, 727]
 ```
 
+Additionally, restful wildcard parameters can be **named**. For example, if the directory structure for the above example is:
+
+```
+endpoints/library$libraryId/book$bookId/author.js
+```
+
+Then
+
+```javascript
+req.idMap('libraryId'); // returns 5
+req.idPath('bookId'); // returns 727
+```
+
 ## Defining DependPoints
 
 All DependPoints are specified in 
