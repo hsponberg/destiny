@@ -41,7 +41,7 @@ In the example below, when the Endpoint is hit, it makes a request to the sport 
 request(function(req, workflow) {
     workflow.call(SPORT, {
 		params: {
-		    sportId: req.sportId
+		    sportId: req.params.sportId
 		}
 	});
 });
@@ -345,7 +345,7 @@ The logger is provided as the global const ```LOG``` to all Endpoints, JS mocks,
 Example
 
 ```javascript
-LOG.debug('myTag', 'You passed parameter {0}', req.parameter);
+LOG.debug('myTag', 'You passed parameter {0}', req.params.parameter);
 LOG.error('myTag', 'You request for {0} failed due to {1}', resource, message);
 ```
 
