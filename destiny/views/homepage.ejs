@@ -90,13 +90,18 @@ function loadEndpoints() {
 
         var buf = '';
 
-        for (var i in data) {
+        for (var i in data.list) {
 
-            var ep = data[i];
+            var ep = data.list[i];
+
+            var label = data.restParamMap[ep.path];
+            if (label === undefined) {
+                label = ep.path;
+            }
 
             buf += '<tr>';
             
-            buf += '<td>' + ep.path + '</td>';
+            buf += '<td>' + label + '</td>';
             
             buf += '<td class="mocks">';
             buf += '<select class="mockSelector" data-path="' + ep.path + '">';
