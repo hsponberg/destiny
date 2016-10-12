@@ -5,6 +5,8 @@ var querystring = require('querystring');
 var util = require('util');
 var apiUtil = require('../hs/Util');
 
+var responseCacheKey = undefined;
+
 function ProcessRequest(req, res) {
 
 	this.req = req;
@@ -51,15 +53,58 @@ ProcessRequest.prototype.processRequest = function(source) {
 		}
 	}
 
+	if (this.context.destiny_config === undefined) {
+		this.context.destiny_config = {};
+	}
+
 	if (this.processInput(this.req)) {
 		self.workflow.req.headers = this.req.headers;
 		self.workflow.req.method = this.req.method;
-		this.safe(this.source.currentEndpoint, "request()", function() { 
-			self.context._request(self.workflow.req, self.workflow); 
-		});
-		this.renderResponseIfReady();
+
+		var cacheResponseDuration = this.context.destiny_config.cache_response_duration;
+		if (sails._destiny.redis !== undefined && cacheResponseDuration >= 0) {
+			this.makeResponseCacheKey();
+			this.checkCache();
+		} else {
+			this.callEndpointRequest();
+		}
 	}
 
+}
+
+ProcessRequest.prototype.callEndpointRequest = function() {
+	var self = this;
+	this.safe(this.source.currentEndpoint, "request()", function() { 
+		self.context._request(self.workflow.req, self.workflow); 
+	});
+	this.renderResponseIfReady();
+}
+
+ProcessRequest.prototype.makeResponseCacheKey = function() {
+
+	// ECMAScript 6 guarantees object properties are traversed in the order they are added
+	// Destiny appends parameters in the order specified in the endpoint
+	// querystring creates the string in the traversal order of the object
+	// Therefore, we do not need to sort the parameters here
+	var s = querystring.stringify(this.workflow.req.params); 
+
+	this.responseCacheKey = sails._destiny.redis.keyPrefix + ':' + this.source.path + '?' + s;
+}
+
+ProcessRequest.prototype.checkCache = function(callEndpointRequest) {
+	var self = this;
+	sails._destiny.redis.client.get(self.responseCacheKey, function(err, reply) {
+	    if (!err && reply) {
+	    	// Cache hit
+	    	var object = JSON.parse(reply);
+	    	self.workflow._outputHeaders = object.outputHeaders;
+	    	self.workflow._output = object.output;
+	    	self.renderResponse(true);
+	    } else {
+	    	// Cache miss
+	    	self.callEndpointRequest();
+	    }
+	});
 }
 
 ProcessRequest.prototype.mockRequest = function(mock, result, path) {
@@ -684,12 +729,15 @@ ProcessRequest.prototype.checkOutput = function() {
 	}
 }
 
-ProcessRequest.prototype.renderResponse = function() {
+ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
+
+	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
 
 	if (this.workflow.hasRenderedResponse()) {
 		return;
 	}
 
+	this.workflow._finalizing = true;
 	this.workflow._renderedResponse = true;
 
 	if (this.workflow.hasError()) {
@@ -706,6 +754,29 @@ ProcessRequest.prototype.renderResponse = function() {
 		this.res.set(this.workflow._outputHeaders);
 
 		this.res.ok(this.workflow._output);
+
+		if (sails._destiny.redis === undefined || usingCachedValue) {
+			return;
+		}
+
+		var cacheResponseDuration = this.context.destiny_config.cache_response_duration;
+		if (cacheResponseDuration >= 0) {
+
+			var key = this.responseCacheKey;
+
+			var object = {
+				headers : this.workflow._outputHeaders,
+				output : this.workflow._output
+			}
+
+			var value = JSON.stringify(object);
+
+			if (cacheResponseDuration > 0) {
+				sails._destiny.redis.client.setex(key, cacheResponseDuration, value);
+			} else if (cacheResponseDuration == 0) {
+				sails._destiny.redis.client.set(key, value);
+			}
+		}		
 	}
 }
 

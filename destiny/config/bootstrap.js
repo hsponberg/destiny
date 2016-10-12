@@ -12,6 +12,7 @@
 var fs = require("fs");
 var path = require('path');
 var chokidar = require('chokidar');
+var redis = require("redis");
 
 module.exports.bootstrap = function(cb) {
 
@@ -51,6 +52,8 @@ module.exports.bootstrap = function(cb) {
 	.on('all', (event, path) => {
 		buildRouteMaps();
 	});
+
+	loadConfig();
 
 	cb();
 };
@@ -684,4 +687,20 @@ function loadGlobals(v, versionPath) {
 		var key = file.substring(0, i);
 		sails._destiny.globals[v][key] = g;
 	});	
+}
+
+function loadConfig() {
+
+	var configPath = sails.config.repo + '../config';
+
+	try {
+		var redisConfig = require(configPath + '/redis');
+		sails._destiny.redis = {
+			client : redis.createClient(redisConfig.connectionOptions),
+			keyPrefix : redisConfig.keyPrefix
+		};
+	} catch(err) {
+		// If no config file, then we won't use redis
+	}
+
 }
