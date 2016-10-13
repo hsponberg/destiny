@@ -267,7 +267,7 @@ Then
 
 ```javascript
 req.idMap('libraryId'); // returns 5
-req.idPath('bookId'); // returns 727
+req.idMap('bookId'); // returns 727
 ```
 
 ## Defining DependPoints
