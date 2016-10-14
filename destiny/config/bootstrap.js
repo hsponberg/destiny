@@ -16,7 +16,11 @@ var redis = require("redis");
 
 module.exports.bootstrap = function(cb) {
 
-	var destiny = {};
+	var destiny = {
+		redis: {
+			enabled: false
+		}
+	};
 	sails._destiny = destiny;
 
 	destiny.versions = {};
@@ -53,7 +57,7 @@ module.exports.bootstrap = function(cb) {
 		buildRouteMaps();
 	});
 
-	loadConfig();
+	parseDestinyConfig(destiny);
 
 	cb();
 };
@@ -689,18 +693,19 @@ function loadGlobals(v, versionPath) {
 	});	
 }
 
-function loadConfig() {
+function parseDestinyConfig(destiny) {
 
-	var configPath = sails.config.repo + '../config';
+	if (sails.config.destiny === undefined) {
+		return;
+	}
 
-	try {
-		var redisConfig = require(configPath + '/redis');
-		sails._destiny.redis = {
-			client : redis.createClient(redisConfig.connectionOptions),
-			keyPrefix : redisConfig.keyPrefix
-		};
-	} catch(err) {
-		// If no config file, then we won't use redis
+	var redisConfig = sails.config.destiny.redisOutputCache;
+	if (redisConfig &&
+		redisConfig.enabled == true) {
+
+		destiny.redis.enabled = true;
+		destiny.redis.client = redis.createClient(redisConfig.connectionOptions);
+		destiny.redis.keyPrefix = redisConfig.keyPrefix;
 	}
 
 }

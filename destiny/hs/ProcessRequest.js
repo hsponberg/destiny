@@ -62,7 +62,7 @@ ProcessRequest.prototype.processRequest = function(source) {
 		self.workflow.req.method = this.req.method;
 
 		var cacheResponseDuration = this.context.destiny_config.cache_response_duration;
-		if (sails._destiny.redis !== undefined && cacheResponseDuration >= 0) {
+		if (sails._destiny.redis.enabled && cacheResponseDuration >= 0) {
 			this.makeResponseCacheKey();
 			this.checkCache();
 		} else {
@@ -755,7 +755,7 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 
 		this.res.ok(this.workflow._output);
 
-		if (sails._destiny.redis === undefined || usingCachedValue) {
+		if (!sails._destiny.redis.enabled || usingCachedValue) {
 			return;
 		}
 
