@@ -1,43 +1,43 @@
-var Git = require("nodegit");
-var fs = require('fs');
+var shelljs = require('shelljs');
 var path = require("path");
-var childProcess = require('child_process');
 var repoPath = require("./config/local").repo;
+repoPath = path.resolve(__dirname, repoPath);
+var childProcess = require('child_process');
 
-var message = "tag message"
-var overwrite = 0;
+var pwd = shelljs.pwd();
+shelljs.cd(repoPath);
 
-var repo;
+var result;
 
-Git.Repository.open(path.resolve(repoPath))
-.then(function(repoResult) {
-  repo = repoResult;
-  return Git.Tag.list(repo);
-})
-.then(function(list) {
+result = shelljs.exec('git tag -l', {silent:true});
 
-	return new Promise(function(fulfill, reject) {
-		var tagName;
-		for (var i in list) {
-		    if (list[i].indexOf("_api_staging_v") == 0) {
-		    	tagName = list[i];
-		    	break;
-		    }
-		}
-		if (!tagName) {
-			reject("There is no staged version");
-		}
-		fulfill(tagName);
-	});
-})
-.then(function(tagName) {
-	return Git.Tag.delete(repo, tagName);
-})
-.then(function(oid) {
-	console.log("Unstaged");
-	console.log("Installing Api");
-	childProcess.fork("./installApi.js");
-})
-.catch(function(error) {
-  console.log(error);
-});
+if (result.code !== 0) {
+	console.log('Error: Git list failed');
+	shelljs.exit(1);
+}
+
+var list = result.stdout.slice(0, -1).split('\n');
+
+var tagName;
+for (var i in list) {
+    if (list[i].indexOf("_api_staging_v") == 0) {
+    	tagName = list[i];
+    	break;
+    }
+}
+if (!tagName) {
+	console.log("There is no staged version");
+	shelljs.exit(1);
+}
+
+var result = shelljs.exec('git tag -d ' + tagName, {silent:true});
+
+if (result.code !== 0) {
+	console.log('Error: unable to delete tag')
+	shelljs.exit(1);
+}
+
+console.log("Unstaged");
+console.log("Installing Api");
+childProcess.fork(pwd + "/installApi.js");
+
