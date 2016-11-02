@@ -21,6 +21,7 @@ module.exports = ProcessRequest;
 
 ProcessRequest.prototype.processRequest = function(source) {
 
+	this.startTime = Date.now();
 	this.source = source;
 
 	this.workflow = this.initWorkflow(this);
@@ -730,6 +731,16 @@ ProcessRequest.prototype.checkOutput = function() {
 }
 
 ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
+
+	var duration = Date.now() - this.startTime;
+	if (duration > sails.config.destiny.durationWarningLimit) {
+		sails._destiny.httpLog.error({
+			url: this.source.path,
+			apiVersion: this.source.version,
+			duration: duration,
+			durationLimit: sails.config.destiny.durationWarningLimit
+		}, 'Duration exceeded limit');
+	}
 
 	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
 

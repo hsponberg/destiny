@@ -5,6 +5,7 @@
   "description": "an experience layer framework",
   "keywords": [],
   "dependencies": {
+    "bunyan": "^1.8.4",
     "chokidar": "^1.5.0",
     "ejs": "~0.8.4",
     "fs-extra": "^0.30.0",
@@ -23,7 +24,7 @@
     "include-all": "~0.1.3",
     "querystring": "^0.2.0",
     "rc": "~0.5.0",
-    "redis": "^2.6.2",
+    "redis": "^2.6.3",
     "sails": "~0.11.0",
     "sails-disk": "~0.10.0",
     "shelljs": "^0.7.4"

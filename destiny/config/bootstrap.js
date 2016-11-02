@@ -13,6 +13,7 @@ var fs = require("fs");
 var path = require('path');
 var chokidar = require('chokidar');
 var redis = require("redis");
+var bunyan = require('bunyan');
 
 module.exports.bootstrap = function(cb) {
 
@@ -29,6 +30,22 @@ module.exports.bootstrap = function(cb) {
 	destiny.versionToMaxBugVersion = {};
 	destiny.globals = {};
 	destiny.dependPointsEnvironment = "production";
+
+	if (sails.config.appName === undefined) {
+		throw "Must define appName in env js";
+	}
+
+	destiny.httpLog = bunyan.createLogger( { 
+		name: sails.config.appName,
+		streams: [
+		    {
+				type: 'rotating-file',
+		    	path: sails.config.repo + '/' + sails.config.destiny.httpLogFile,
+				period: '1d',   // daily rotation 
+				count: 5        // keep 5 back copies
+		    }
+		  ]
+	} );
 
 	buildRouteMaps();
 

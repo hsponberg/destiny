@@ -35,6 +35,14 @@ module.exports = {
 
   publishDev: true, // Publishes /dev and makes dev mocks available
 
+  appName: 'SampleApi',
+
+  destiny: {
+
+    httpLogFile: 'logs/http.json',
+    durationWarningLimit: 400, // millis
+  }
+
   // In local.js, specify:
   //repo: "../path-to-repo",
   //apiLogLevel: {
