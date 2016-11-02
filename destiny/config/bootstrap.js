@@ -40,7 +40,7 @@ module.exports.bootstrap = function(cb) {
 		streams: [
 		    {
 				type: 'rotating-file',
-		    	path: sails.config.repo + '/' + sails.config.destiny.httpLogFile,
+		    	path: path.join(sails.config.repo, sails.config.destiny.httpLogFile),
 				period: '1d',   // daily rotation 
 				count: 5        // keep 5 back copies
 		    }
