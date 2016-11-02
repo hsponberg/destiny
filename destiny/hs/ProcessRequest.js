@@ -734,12 +734,10 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 
 	var duration = Date.now() - this.startTime;
 	if (duration > sails.config.destiny.durationWarningLimit) {
-		sails._destiny.httpLog.error({
-			url: this.source.path,
-			apiVersion: this.source.version,
+		this.logHttpError('Duration exceeded limit', {
 			duration: duration,
 			durationLimit: sails.config.destiny.durationWarningLimit
-		}, 'Duration exceeded limit');
+		});
 	}
 
 	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
@@ -1043,6 +1041,21 @@ ProcessRequest.prototype.initJsMockContext = function(log) {
 
 	var context = vm.createContext(sandbox);
 	return context;
+}
+
+ProcessRequest.prototype.logHttpError = function(msg, props) {
+
+	var obj = {
+		url: this.source.path,
+		apiVersion: this.source.version,
+	};
+
+	Object.keys(props).forEach(function(key) {
+	  var val = props[key];
+	  obj[key] = val;
+	});
+
+	sails._destiny.httpLog.error(props, msg);
 }
 
 // The unit testing will exercise processRequest with a variety of conditions that are automatically generated
