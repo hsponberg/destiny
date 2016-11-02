@@ -25,6 +25,7 @@ module.exports.bootstrap = function(cb) {
 
 	destiny.versions = {};
 	destiny.findEndpointFromPath = findEndpointFromPath;
+	destiny.versionToMaxMinorVersion = {};
 	destiny.versionToMaxBugVersion = {};
 	destiny.globals = {};
 	destiny.dependPointsEnvironment = "production";
@@ -592,15 +593,19 @@ function getVersionKey(name, buildVersionToMaxBugVersion) {
 	} else {
 		return undefined;
 	}
+	var versionWithoutMinor = keyInt;
 	if (tokens.length > 1) {
 		keyInt += tokens[1] * 1000;
 	} else {
-		return undefined;
+		var maxVersion = sails._destiny.versionToMaxMinorVersion[versionWithoutMinor];
+		if (maxVersion) {
+			keyInt = maxVersion;
+		}		
 	}
 	var versionWithoutBug = keyInt;
 	if (tokens.length > 2) {
 		keyInt += tokens[2];
-	} else {
+	} else if (tokens.length == 2) {
 		var maxVersion = sails._destiny.versionToMaxBugVersion[versionWithoutBug];
 		if (maxVersion) {
 			keyInt = maxVersion;
@@ -611,6 +616,10 @@ function getVersionKey(name, buildVersionToMaxBugVersion) {
 		var maxVersion = sails._destiny.versionToMaxBugVersion[versionWithoutBug];
 		if (!maxVersion || maxVersion < keyInt) {
 			sails._destiny.versionToMaxBugVersion[versionWithoutBug] = keyInt;
+		}
+		maxVersion = sails._destiny.versionToMaxMinorVersion[versionWithoutMinor];
+		if (!maxVersion || maxVersion < keyInt) {
+			sails._destiny.versionToMaxMinorVersion[versionWithoutMinor] = keyInt;
 		}
 	}
 
