@@ -175,6 +175,10 @@ ProcessRequest.prototype.safe = function(endpoint, method, func) {
 				if (!lineOfCode) {
 					// Something went wrong with framework code
 					this.LOG.error("destiny", trace);
+
+					this.logHttpError('Server Error', {
+						trace: trace
+					});
 					return this.renderError("server", "server framework error");
 				}
 
@@ -184,6 +188,10 @@ ProcessRequest.prototype.safe = function(endpoint, method, func) {
 			this.LOG.error("destiny", trace[0]);
 			this.LOG.error("destiny", "\tat {0} {1}", lineOfCode, trace[lineForFileI].substring(i, i2 + 1));
 			this.LOG.error("destiny", "\tin {0}.{1}", endpoint.filename, method);
+
+			this.logHttpError('Server Error', {
+				trace: trace[0] + "\n\tat " + lineOfCode + " " + trace[lineForFileI].substring(i, i2 + 1) + '\n\t' + endpoint.filename + '.' + method
+			});			
 		}
 
 		return this.renderError("server", "server error");
@@ -387,12 +395,12 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 			if (status.code >= 200 && status.code < 300) {
 				self.processResults(endpointProcessId, saveEndpoint, status, body, spec);
 			} else {
-				self.processNotOk(endpointProcessId, status.code, undefined, body, spec.allowError);
+				self.processNotOk(endpointProcessId, status.code, undefined, body, spec.allowError, host + path);
 			}
 		});
 	});
 	req.on('error', function(error) {
-		self.processNotOk(endpointProcessId, 0, error, undefined, spec.allowError);
+		self.processNotOk(endpointProcessId, 0, error, undefined, spec.allowError, host + path);
 	});
 	if (options.method.toLowerCase() == "post") {
 		req.write(query);
@@ -406,7 +414,7 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 			if (self.shouldProcess(endpointProcessId)) {
 				req.abort();
 				self.safe(self.source.currentEndpoint, 'exception("' + endpointProcessId + '")', function() { 
-					self.processTimeout(endpointProcessId, spec.allowTimeout);
+					self.processTimeout(endpointProcessId, spec.allowTimeout, spec.timeout, options.host + options.path);
 				});					
 			}
 		}, spec.timeout);
@@ -435,7 +443,7 @@ ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint,
 				if (statusCode >= 200 && statusCode < 300) {
 					self.processResults(endpointProcessId, endpoint, status, mock, spec);
 				} else {
-					self.processNotOk(endpointProcessId, status.code, undefined, mock, spec.allowError);
+					self.processNotOk(endpointProcessId, status.code, undefined, mock, spec.allowError, type + endpoint);
 				}
 			}
 		}, latency);
@@ -444,7 +452,7 @@ ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint,
 		setTimeout(function() {
 			if (self.shouldProcess(endpointProcessId)) {
 				self.safe(self.source.currentEndpoint, 'exception("' + endpointProcessId + '")', function() { 
-					self.processTimeout(endpointProcessId, spec.allowTimeout);
+					self.processTimeout(endpointProcessId, spec.allowTimeout, spec.timeout, type + endpoint);
 				});
 			}
 		}, spec.timeout);
@@ -554,9 +562,15 @@ ProcessRequest.prototype.processResultsHelper = function(endpointProcessId, stat
 	this.renderResponseIfReady();
 }
 
-ProcessRequest.prototype.processTimeout = function(endpointProcessId, allowTimeout) {
+ProcessRequest.prototype.processTimeout = function(endpointProcessId, allowTimeout, timeout, dependUrl) {
 
 	var self = this;
+
+	this.logHttpError('Dependpoint timed out', {
+		dependUrl: dependUrl,
+		dependTimeout: timeout
+	});	
+
 	self.safe(self.source.currentEndpoint, 'exception("' + endpointProcessId + '")', function() { 
 		self.processTimeoutHelper(endpointProcessId, allowTimeout);
 	});					
@@ -581,9 +595,16 @@ ProcessRequest.prototype.processTimeoutHelper = function(endpointProcessId, allo
 	this.renderResponseIfReady();
 }
 
-ProcessRequest.prototype.processNotOk = function(endpointProcessId, code, error, response, allowError) {
+ProcessRequest.prototype.processNotOk = function(endpointProcessId, code, error, response, allowError, dependUrl) {
 
 	var self = this;
+
+	this.logHttpError('Dependpoint not ok', {
+		dependUrl: dependUrl,
+		code: code,
+		error: error
+	});	
+
 	self.safe(self.source.currentEndpoint, 'exception("' + endpointProcessId + '")', function() { 
 		self.processNotOkHelper(endpointProcessId, code, error, response, allowError);
 	});
@@ -750,6 +771,12 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 	this.workflow._renderedResponse = true;
 
 	if (this.workflow.hasError()) {
+
+		this.logHttpError('Server error', {
+			code: this.workflow._error.code,
+			serverError: this.workflow._error
+		});
+
 		// Server Errors are logged by Sails
 		if (this.workflow._error.code !== undefined) {
 			var code = this.workflow._error.code;
@@ -1045,9 +1072,11 @@ ProcessRequest.prototype.initJsMockContext = function(log) {
 
 ProcessRequest.prototype.logHttpError = function(msg, props) {
 
+	var self = this;
+
 	var obj = {
-		url: this.source.path,
-		apiVersion: this.source.version,
+		url: self.source.path,
+		apiVersion: self.source.version,
 	};
 
 	Object.keys(props).forEach(function(key) {
@@ -1055,7 +1084,7 @@ ProcessRequest.prototype.logHttpError = function(msg, props) {
 	  obj[key] = val;
 	});
 
-	sails._destiny.httpLog.error(props, msg);
+	sails._destiny.httpLog.error(obj, msg);
 }
 
 // The unit testing will exercise processRequest with a variety of conditions that are automatically generated
