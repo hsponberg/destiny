@@ -49,6 +49,8 @@ module.exports.bootstrap = function(cb) {
 
 	buildRouteMaps();
 
+	loadResources();
+
 	var chokidarWatch = [];
 	if (sails.config.publishDev) {
 		
@@ -160,6 +162,7 @@ function findEndpointFromPath(path, testAuthorized) {
 	sources.idPath = ids;
 	sources.idMap = idMap;
 	sources.globals = destiny.globals[versionKey];
+	sources.resources = destiny.resources;
 	sources.mockVersion = undefined;
 	sources.version = versionKey;
 
@@ -717,6 +720,42 @@ function loadGlobals(v, versionPath) {
 		var key = file.substring(0, i);
 		sails._destiny.globals[v][key] = g;
 	});	
+}
+
+function loadResources() {
+
+	sails._destiny.resources = {};
+
+	var resourcesExists = false;
+	try {
+	    stats = fs.lstatSync(path.join(sails.config.repo, "resources"));
+	    if (stats.isDirectory()) {
+	        resourcesExists = true;
+	    }
+	} catch (e) {}
+
+	if (!resourcesExists) {
+		return;
+	}
+
+	loadResourcesHelper('');
+}
+
+function loadResourcesHelper(dirPath) {
+
+	var basePath = path.join(sails.config.repo, "resources", dirPath);
+
+	fs.readdirSync(basePath).filter(function(file) {
+		var filePath = path.join(basePath, file);
+		if (fs.statSync(filePath).isDirectory()) {
+			var prefix = dirPath === '' ? '' : dirPath + '/';
+			loadResourcesHelper(prefix + file);
+		} else {
+			var data = fs.readFileSync(filePath);
+			var key = dirPath === '' ? file : dirPath + '/' + file;
+			sails._destiny.resources[key] = data;
+		}
+	});
 }
 
 function parseDestinyConfig(destiny) {

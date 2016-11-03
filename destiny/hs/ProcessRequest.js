@@ -1035,6 +1035,15 @@ ProcessRequest.prototype.initContext = function(log) {
 		},
 		include: function(name) {
 			return self.source.globals[name];
+		},
+		resource: function(name) {
+			if (self.source.resources[name] === undefined) {
+				var obj = new Error("there is no resource: " + name);
+				obj.errorTag = "destiny";
+				throw obj;
+			} else {
+				return self.source.resources[name];				
+			}
 		}
 	};
 
