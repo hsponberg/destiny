@@ -980,6 +980,14 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 		msg = " " + msg;
 	}
 	console.log(mode + msg);
+
+	var httpLoggingThreshold = this.LOG._kLevelError;
+	if (threshold >= httpLoggingThreshold) {
+		this.logHttpError('Application Error', {
+			level: mode,
+			msg: msg
+		});
+	}
 }
 
 ProcessRequest.prototype.initContext = function(log) {
@@ -1077,12 +1085,8 @@ ProcessRequest.prototype.logHttpError = function(msg, props) {
 	var obj = {
 		url: self.source.path,
 		apiVersion: self.source.version,
+		meta: props
 	};
-
-	Object.keys(props).forEach(function(key) {
-	  var val = props[key];
-	  obj[key] = val;
-	});
 
 	sails._destiny.httpLog.error(obj, msg);
 }
