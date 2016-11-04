@@ -31,22 +31,15 @@ module.exports = {
 
   repo: "../../", // path to repo
 
-  apiLogLevel: {
-    default: 3, // 0 = debug, 1 = info, 2 = warn, 3 = error, 4 = off
-    destiny: 3,
-    customTag: 0,
-  },
+  //apiLogLevel: {
+  //  default: 3, // 0 = debug, 1 = info, 2 = warn, 3 = error, 4 = off
+  //  destiny: 3,
+  //  customTag: 0,
+  //},
 
   // These parameters are available in the context of all APIs
-  apiContextConfig: {
-  	someApiKey: 'secret'
-  },
-
-  // Authentication token for testing to pass in the header
-  testAuthToken: '12345',
-
-  // Allows testing mocks for released version with auth token
-  // If false, only testing /api/dev is allowed with the auth token
-  enableReleaseTesting: false
+  //apiContextConfig: {
+  //	someApiKey: 'secret'
+  //},
 
 };

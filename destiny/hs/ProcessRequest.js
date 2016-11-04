@@ -14,7 +14,7 @@ function ProcessRequest(req, res) {
 	this.res = res;
 
 	var log = this.initLog();
-	log._level = (sails.config.apiLogLevel === undefined) ? { default: log._kLevelOff } : sails.config.apiLogLevel;
+	log._level = (sails.config.destiny.apiLogLevel === undefined) ? { default: log._kLevelOff } : sails.config.destiny.apiLogLevel;
 
 	this.LOG = log;	
 }
@@ -1076,7 +1076,7 @@ ProcessRequest.prototype.initContext = function(log) {
 		_processResultsMap : {},
 		_processExceptionMap : {},
 		_finalize: undefined,
-		config : sails.config.apiContextConfig,
+		config : sails.config.destiny.apiContextConfig,
 		LOG : log,
 		request: function(func) {
 			if (sandbox._request !== undefined) {
@@ -1134,7 +1134,7 @@ ProcessRequest.prototype.initInterceptContext = function(log) {
 
 	var sandbox = {
 		_interceptResults : undefined,
-		config : sails.config.apiContextConfig,
+		config : sails.config.destiny.apiContextConfig,
 		LOG : log,
 		interceptResults: function(func) {
 			sandbox._interceptResults = func;
@@ -1153,7 +1153,7 @@ ProcessRequest.prototype.initJsMockContext = function(log) {
 	var self = this;
 
 	var sandbox = {
-		config : sails.config.apiContextConfig,
+		config : sails.config.destiny.apiContextConfig,
 		LOG : log,
 		include: function(name) {
 			return self.source.globals[name];

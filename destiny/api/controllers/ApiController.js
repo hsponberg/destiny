@@ -22,7 +22,7 @@ module.exports = {
 		var testAuthorized = false;
 		var testAuthToken = req.headers["destiny-test-auth"];
 		if (testAuthToken) {
-			if (testAuthToken !== sails.config.testAuthToken) {
+			if (testAuthToken !== sails.config.destiny.testAuthToken) {
 				var delay = Math.random() * 3000;
 				setTimeout(function() {
 					return res.send(403);

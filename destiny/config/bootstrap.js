@@ -30,19 +30,19 @@ module.exports.bootstrap = function(cb) {
 	destiny.versionToMaxBugVersion = {};
 	destiny.globals = {};
 
-	var env = sails.config.environment === undefined ? "production" : sails.config.environment;
+	var env = sails.config.dependEnvironment === undefined ? "production" : sails.config.dependEnvironment;
 	destiny.dependPointsEnvironment = env;
 
-	if (sails.config.appName === undefined) {
+	if (sails.config.destiny.appName === undefined) {
 		throw "Must define appName in env js";
 	}
 
 	destiny.httpLog = bunyan.createLogger( { 
-		name: sails.config.appName,
+		name: sails.config.destiny.appName,
 		streams: [
 		    {
 				type: 'rotating-file',
-		    	path: path.join(sails.config.repo, sails.config.destiny.httpLog.file),
+		    	path: path.join(sails.config.destiny.repo, sails.config.destiny.httpLog.file),
 				period: sails.config.destiny.httpLog.period,
 				count: sails.config.destiny.httpLog.copiesCount
 		    }
@@ -54,14 +54,14 @@ module.exports.bootstrap = function(cb) {
 	loadResources();
 
 	var chokidarWatch = [];
-	if (sails.config.publishDev) {
+	if (sails.config.destiny.publishDev) {
 		
 		buildRouteMap();
 
-		var devPath = sails.config.repo + '/endpoints';
-		var mockPath = sails.config.repo + '/endpointsMocks';
-		var mockDependenciesPath = sails.config.repo + '/dependMocks';
-		var dependsInterceptorsPath = sails.config.repo + '/dependInterceptors';
+		var devPath = sails.config.destiny.repo + '/endpoints';
+		var mockPath = sails.config.destiny.repo + '/endpointsMocks';
+		var mockDependenciesPath = sails.config.destiny.repo + '/dependMocks';
+		var dependsInterceptorsPath = sails.config.destiny.repo + '/dependInterceptors';
 		chokidarWatch = chokidarWatch.concat([devPath, mockPath, mockDependenciesPath, dependsInterceptorsPath]);
 	}
 
@@ -73,7 +73,7 @@ module.exports.bootstrap = function(cb) {
 		});
 	}
 
-	var outputPath = path.join(sails.config.repo, ".tmp");
+	var outputPath = path.join(sails.config.destiny.repo, ".tmp");
 	chokidar.watch(['lastModified.txt'], { cwd: outputPath, awaitWriteFinish: true, ignoreInitial: true })
 	.on('all', (event, path) => {
 		buildRouteMaps();
@@ -95,7 +95,7 @@ function buildRouteMaps() {
 
 	var s = new Date().getTime();
 
-	var endpointPath = path.join(sails.config.repo, ".tmp");
+	var endpointPath = path.join(sails.config.destiny.repo, ".tmp");
 	fs.readdirSync(endpointPath).filter(function(file) {
 		if (!fs.statSync(path.join(endpointPath, file)).isDirectory()) {
 			return;
@@ -113,7 +113,7 @@ function buildRouteMaps() {
 			sails._destiny.stagingVersionKey = versionKey;
 		}
 		buildVersionRouteMap(versionKey, path.join(versionPath, "endpoints"));
-		if (sails.config.enableReleaseTesting) {
+		if (sails.config.destiny.enableReleaseTesting) {
 			buildDependencyMockMap(versionKey, path.join(versionPath, "dependMocks"));
 		}
 	});
@@ -123,11 +123,11 @@ function buildRouteMaps() {
 
 function buildRouteMap() {
 	var s = new Date().getTime();
-	buildVersionRouteMap("dev", sails.config.repo + '/endpoints');
-	buildMockMap(sails.config.repo + '/endpointsMocks');
-	buildDependencyMap(sails.config.repo + '/endpoints');
-	buildDependencyMockMap("dev", sails.config.repo + '/dependMocks');
-	buildDependencyInterceptorsMap(sails.config.repo + '/dependInterceptors');
+	buildVersionRouteMap("dev", sails.config.destiny.repo + '/endpoints');
+	buildMockMap(sails.config.destiny.repo + '/endpointsMocks');
+	buildDependencyMap(sails.config.destiny.repo + '/endpoints');
+	buildDependencyMockMap("dev", sails.config.destiny.repo + '/dependMocks');
+	buildDependencyInterceptorsMap(sails.config.destiny.repo + '/dependInterceptors');
 	var e = new Date().getTime();
 	console.log("Reloaded dev files in " + (e - s) + " millis");
 }
@@ -171,7 +171,7 @@ function findEndpointFromPath(path, testAuthorized) {
 	sources.mockVersion = undefined;
 	sources.version = versionKey;
 
-	if ((sails.config.publishDev && v == "dev") || 
+	if ((sails.config.destiny.publishDev && v == "dev") || 
 			versionKey == destiny.stagingVersionKey ||
 			testAuthorized) {
 
@@ -733,7 +733,7 @@ function loadResources() {
 
 	var resourcesExists = false;
 	try {
-	    stats = fs.lstatSync(path.join(sails.config.repo, "resources"));
+	    stats = fs.lstatSync(path.join(sails.config.destiny.repo, "resources"));
 	    if (stats.isDirectory()) {
 	        resourcesExists = true;
 	    }
@@ -748,7 +748,7 @@ function loadResources() {
 
 function loadResourcesHelper(dirPath) {
 
-	var basePath = path.join(sails.config.repo, "resources", dirPath);
+	var basePath = path.join(sails.config.destiny.repo, "resources", dirPath);
 
 	fs.readdirSync(basePath).filter(function(file) {
 		var filePath = path.join(basePath, file);
