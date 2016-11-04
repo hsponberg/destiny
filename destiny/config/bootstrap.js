@@ -29,7 +29,9 @@ module.exports.bootstrap = function(cb) {
 	destiny.versionToMaxMinorVersion = {};
 	destiny.versionToMaxBugVersion = {};
 	destiny.globals = {};
-	destiny.dependPointsEnvironment = "production";
+
+	var env = sails.config.environment === undefined ? "production" : sails.config.environment;
+	destiny.dependPointsEnvironment = env;
 
 	if (sails.config.appName === undefined) {
 		throw "Must define appName in env js";
@@ -99,6 +101,9 @@ function buildRouteMaps() {
 			return;
 		}
 		var isStaging = file.indexOf("s") == 0;
+		if (isStaging && sails.config.destiny.publishStaging !== true) {
+			return;
+		}
 		var versionPath = path.join(endpointPath, file);
 		if (isStaging) {
 			file = file.substring(1);

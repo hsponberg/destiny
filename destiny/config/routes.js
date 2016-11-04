@@ -33,29 +33,36 @@ module.exports.routes = {
   ***************************************************************************/
 
   '/api/apiadmin': {
+    policy: 'notProduction',
     view: 'homepage'
   },
   '/api/endpoints' : {
+    policy: 'notProduction',
     controller: 'ApiController',
     action: 'endpoints'
   },
   '/api/dependPoints' : {
+    policy: 'notProduction',
     controller: 'ApiController',
     action: 'dependPoints'
   },
   '/api/dependPointEnvironments' : {
+    policy: 'notProduction',
     controller: 'ApiController',
     action: 'dependPointEnvironments'
   },
   'PUT /api/mock' : {
+    policy: 'notProduction',
     controller: 'ApiController',
     action: 'putMock'
   },
   'GET /api/mock' : {
+    policy: 'notProduction',
     controller: 'MockController',
     action: 'find'
   },
   'PUT /api/dependPointEnvironment' : {
+    policy: 'notProduction',
     controller: 'ApiController',
     action: 'putDependPointEnvironment'
   },
