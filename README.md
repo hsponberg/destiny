@@ -516,3 +516,7 @@ test('Low tide', function(t) {
 		});
 });
 ```
+
+## Other Notes
+
+* Endpoint code runs in a sandboxed VM. It can't make node ```require``` calls. If an Endpoint needs functionality required-in, a global include can provide this functionality.
