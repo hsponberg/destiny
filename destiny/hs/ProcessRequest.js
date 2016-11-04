@@ -331,6 +331,15 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 		path = endpoint.substring(slashI);
 	}
 
+	var port;
+	var colonI = host.indexOf(':');
+	if (colonI > 0) {
+		port = host.substring(colonI + 1);
+		host = host.substring(0, colonI);
+	} else {
+		port = (isHttps) ? 443 : 80;
+	}
+
 	var restParamI = 0;
 	var sINext = 0;
 	var sI = path.indexOf("$");
@@ -368,7 +377,7 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 
 	var options = {
 	    host: host,
-	    port: (isHttps) ? 443 : 80,
+	    port: port,
 	    path: path,
 	    method: spec.method,
 	    headers: headers
@@ -884,6 +893,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 				return self.renderError("server", "call not allowed after finalizing",
 					"call not allowed after finalizing: " + endpoint);
 			} else {
+				if (spec === undefined) {
+					spec = {};
+				}
 				endpointProcessId = (endpointProcessId === undefined) ? endpoint : endpointProcessId;
 				self.workflow._callsInProgress[endpointProcessId] = true;
 				self.makeCall(endpointProcessId, endpoint, spec);			
