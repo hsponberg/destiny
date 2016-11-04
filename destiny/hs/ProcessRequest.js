@@ -4,6 +4,7 @@ var https = require('https');
 var querystring = require('querystring');
 var util = require('util');
 var apiUtil = require('../hs/Util');
+var uuid = require('node-uuid');
 
 var responseCacheKey = undefined;
 
@@ -58,6 +59,8 @@ ProcessRequest.prototype.processRequest = function(source) {
 		this.context.destiny_config = {};
 	}
 
+	this.processHttpHeaderParameters();
+
 	if (this.processInput(this.req)) {
 		self.workflow.req.headers = this.req.headers;
 		self.workflow.req.method = this.req.method;
@@ -71,6 +74,26 @@ ProcessRequest.prototype.processRequest = function(source) {
 		}
 	}
 
+}
+
+ProcessRequest.prototype.processHttpHeaderParameters = function() {
+
+	this.workflow.outputHeader('X-Powered-By', 'Destiny');
+
+	for (var i in sails.config.destiny.httpHeaderParameters) {
+
+		var hp = sails.config.destiny.httpHeaderParameters[i];
+		if (hp.forward === true) {
+
+			if (this.req.headers[hp.name.toLowerCase()] !== undefined) {
+				this.workflow.outputHeader(hp.name, this.req.headers[hp.name.toLowerCase()]);
+				continue;
+			}
+		}
+		if (hp.generator === 'guid') {
+			this.workflow.outputHeader(hp.name, uuid.v4());
+		}
+	}
 }
 
 ProcessRequest.prototype.callEndpointRequest = function() {
@@ -98,7 +121,11 @@ ProcessRequest.prototype.checkCache = function(callEndpointRequest) {
 	    if (!err && reply) {
 	    	// Cache hit
 	    	var object = JSON.parse(reply);
-	    	self.workflow._outputHeaders = object.outputHeaders;
+	    	for (var i in object.outputHeaders) {
+	    		if (self.workflow._outputHeaders[i] === undefined) {
+	    			self.workflow._outputHeaders[i] = object.outputHeaders[i];
+	    		}
+	    	}
 	    	self.workflow._output = object.output;
 	    	self.renderResponse(true);
 	    } else {
@@ -754,10 +781,10 @@ ProcessRequest.prototype.checkOutput = function() {
 ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 
 	var duration = Date.now() - this.startTime;
-	if (duration > sails.config.destiny.durationWarningLimit) {
+	if (duration > sails.config.destiny.httpLog.durationWarningLimit) {
 		this.logHttpError('Duration exceeded limit', {
 			duration: duration,
-			durationLimit: sails.config.destiny.durationWarningLimit
+			durationLimit: sails.config.destiny.httpLog.durationWarningLimit
 		});
 	}
 
@@ -1096,6 +1123,14 @@ ProcessRequest.prototype.logHttpError = function(msg, props) {
 		apiVersion: self.source.version,
 		meta: props
 	};
+
+	for (var i in sails.config.destiny.httpHeaderParameters) {
+
+		var hp = sails.config.destiny.httpHeaderParameters[i];
+		if (hp.httpLog === true) {
+			obj[hp.name] = this.workflow._outputHeaders[hp.name];
+		}
+	}
 
 	sails._destiny.httpLog.error(obj, msg);
 }
