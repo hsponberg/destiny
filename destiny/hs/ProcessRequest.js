@@ -80,18 +80,32 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 
 	this.workflow.outputHeader('X-Powered-By', 'Destiny');
 
+	// generator supports:
+	// guid - generate a guid
+	// forward - forwards from the http request header
+	// forward-else-guid - forwards if exists in the http request header, else generates a guid
+
 	for (var i in sails.config.destiny.httpHeaderParameters) {
 
 		var hp = sails.config.destiny.httpHeaderParameters[i];
-		if (hp.forward === true) {
+		if (hp.generator.indexOf("forward") === 0) {
 
 			if (this.req.headers[hp.name.toLowerCase()] !== undefined) {
-				this.workflow.outputHeader(hp.name, this.req.headers[hp.name.toLowerCase()]);
+				var val = this.req.headers[hp.name.toLowerCase()];
+				if (hp.returnInResponse) {
+					this.workflow.outputHeader(hp.name, val);
+				} else {
+					this.workflow._outputHeadersNotInResponse(hp.name, val);
+				}
 				continue;
 			}
 		}
-		if (hp.generator === 'guid') {
-			this.workflow.outputHeader(hp.name, uuid.v4());
+		if (hp.generator.indexOf('guid') >= 0) {
+			if (hp.returnInResponse) {
+				this.workflow.outputHeader(hp.name, uuid.v4());
+			} else {
+				this.workflow._outputHeadersNotInResponse(hp.name, uuid.v4());
+			}
 		}
 	}
 }
@@ -372,6 +386,21 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 	for (var i in spec.headers) {
 		if (spec.headers[i] !== undefined) {
 			headers[i] = spec.headers[i];
+		}
+	}
+
+	for (var i in sails.config.destiny.httpHeaderParameters) {
+		var hp = sails.config.destiny.httpHeaderParameters[i];
+		if (hp.forwardToDepends === true) {
+			var val;
+			if (hp.returnInResponse) {
+				val = this.workflow._outputHeaders[hp.name];
+			} else {
+				val = this.workflow._outputHeadersNotInResponse[hp.name];
+			}
+			if (val !== undefined) {
+				headers[hp.name] = val;
+			}
 		}
 	}
 
@@ -878,6 +907,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_idPath: [],
 		_idMap: {},
 		_outputHeaders : {},
+		_outputHeadersNotInResponse : {},
 		req : {
 			headers: {},
 			params: {}
@@ -942,6 +972,13 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		outputHeader : function(param, value) {
 			self.workflow._outputHeaders[param] = value;
+		},
+		httpHeaderParameter : function(param, value) {
+			if (self.workflow._outputHeaders[param] !== undefined) {
+				return self.workflow._outputHeaders[param];
+			} else {
+				return self.workflow._outputHeadersNotInResponse[param];
+			}
 		},
 		error : function(errorObject) {
 			self.workflow._hasError = true;
@@ -1140,7 +1177,11 @@ ProcessRequest.prototype.logHttpError = function(msg, props) {
 
 		var hp = sails.config.destiny.httpHeaderParameters[i];
 		if (hp.httpLog === true) {
-			obj[hp.name] = this.workflow._outputHeaders[hp.name];
+			if (hp.returnInResponse) {
+				obj[hp.name] = this.workflow._outputHeaders[hp.name];
+			} else {
+				obj[hp.name] = this.workflow._outputHeadersNotInResponse[hp.name];
+			}
 		}
 	}
 
