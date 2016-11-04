@@ -81,31 +81,32 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 	this.workflow.outputHeader('X-Powered-By', 'Destiny');
 
 	// generator supports:
+	// static - static value provided after :
 	// guid - generate a guid
 	// forward - forwards from the http request header
 	// forward-else-guid - forwards if exists in the http request header, else generates a guid
 
 	for (var i in sails.config.destiny.httpHeaderParameters) {
 
-		var hp = sails.config.destiny.httpHeaderParameters[i];
-		if (hp.generator.indexOf("forward") === 0) {
+		var val = undefined;
 
-			if (this.req.headers[hp.name.toLowerCase()] !== undefined) {
-				var val = this.req.headers[hp.name.toLowerCase()];
-				if (hp.returnInResponse) {
-					this.workflow.outputHeader(hp.name, val);
-				} else {
-					this.workflow._outputHeadersNotInResponse(hp.name, val);
-				}
-				continue;
-			}
+		var hp = sails.config.destiny.httpHeaderParameters[i];
+		if (hp.generator.indexOf("static:") === 0) {
+			val = hp.generator.substring(7).trim();
+		} else if (hp.generator.indexOf("forward") === 0) {
+			val = this.req.headers[hp.name.toLowerCase()];
 		}
-		if (hp.generator.indexOf('guid') >= 0) {
-			if (hp.returnInResponse) {
-				this.workflow.outputHeader(hp.name, uuid.v4());
-			} else {
-				this.workflow._outputHeadersNotInResponse(hp.name, uuid.v4());
-			}
+		if (val === undefined && hp.generator.indexOf('guid') >= 0) {
+			val = uuid.v4();
+		}
+
+		if (val === undefined) {
+			continue;
+		}
+		if (hp.returnInResponse) {
+			this.workflow.outputHeader(hp.name, val);
+		} else {
+			this.workflow._outputHeadersNotInResponse[hp.name] = val;
 		}
 	}
 }
@@ -381,13 +382,7 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 		spec.method = "GET";
 	}
 
-	// Sanitize headers
 	var headers = {};
-	for (var i in spec.headers) {
-		if (spec.headers[i] !== undefined) {
-			headers[i] = spec.headers[i];
-		}
-	}
 
 	for (var i in sails.config.destiny.httpHeaderParameters) {
 		var hp = sails.config.destiny.httpHeaderParameters[i];
@@ -401,6 +396,12 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 			if (val !== undefined) {
 				headers[hp.name] = val;
 			}
+		}
+	}
+
+	for (var i in spec.headers) {
+		if (spec.headers[i] !== undefined) {
+			headers[i] = spec.headers[i];
 		}
 	}
 
