@@ -115,9 +115,6 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 			this.workflow._outputHeadersNotInResponse[hp.name] = val;
 		}
 	}
-
-	console.log(this.workflow._outputHeaders);
-	console.log(this.workflow._outputHeadersNotInResponse);
 }
 
 ProcessRequest.prototype.callEndpointRequest = function() {
