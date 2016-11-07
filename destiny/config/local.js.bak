@@ -29,17 +29,21 @@
 
 module.exports = {
 
-  repo: "../../", // path to repo
+  destiny: {
 
-  //apiLogLevel: {
-  //  default: 3, // 0 = debug, 1 = info, 2 = warn, 3 = error, 4 = off
-  //  destiny: 3,
-  //  customTag: 0,
-  //},
+    repo: "../../", // path to repo
 
-  // These parameters are available in the context of all APIs
-  //apiContextConfig: {
-  //	someApiKey: 'secret'
-  //},
+    //apiLogLevel: {
+    //  default: 3, // 0 = debug, 1 = info, 2 = warn, 3 = error, 4 = off
+    //  destiny: 3,
+    //  customTag: 0,
+    //},
+
+    // These parameters are available in the context of all APIs
+    //apiContextConfig: {
+    //  someApiKey: 'secret'
+    //},
+
+  }  
 
 };
