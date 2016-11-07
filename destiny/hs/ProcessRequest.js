@@ -83,8 +83,10 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 	// generator supports:
 	// static - static value provided after :
 	// guid - generate a guid
+	// ip - client's ip address
 	// forward - forwards from the http request header
-	// forward-else-guid - forwards if exists in the http request header, else generates a guid
+	// forward-else-guid - forwards if exists in the http request header, else guid from above
+	// forward-else-ip - forwards if exists, else ip from above
 
 	for (var i in sails.config.destiny.httpHeaderParameters) {
 
@@ -96,8 +98,12 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 		} else if (hp.generator.indexOf("forward") === 0) {
 			val = this.req.headers[hp.name.toLowerCase()];
 		}
-		if (val === undefined && hp.generator.indexOf('guid') >= 0) {
-			val = uuid.v4();
+		if (val === undefined) {
+			if (hp.generator.indexOf('guid') >= 0) {
+				val = uuid.v4();
+			} else if (hp.generator.indexOf('ip') >= 0) {
+				val = this.req.ip;
+			}
 		}
 
 		if (val === undefined) {
@@ -109,6 +115,9 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 			this.workflow._outputHeadersNotInResponse[hp.name] = val;
 		}
 	}
+
+	console.log(this.workflow._outputHeaders);
+	console.log(this.workflow._outputHeadersNotInResponse);
 }
 
 ProcessRequest.prototype.callEndpointRequest = function() {
