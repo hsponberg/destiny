@@ -1,6 +1,6 @@
 var shelljs = require('shelljs');
 var path = require("path");
-var repoPath = require("./config/local").repo;
+var repoPath = require("./config/local").destiny.repo;
 repoPath = path.resolve(__dirname, repoPath);
 var childProcess = require('child_process');
 

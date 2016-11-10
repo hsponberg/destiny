@@ -1,7 +1,7 @@
 var shelljs = require('shelljs');
 var fs = require('fs-extra');
 var path = require("path");
-var repoPath = require("./config/local").repo;
+var repoPath = require("./config/local").destiny.repo;
 repoPath = path.resolve(__dirname, repoPath);
 
 var pwd = shelljs.pwd();
