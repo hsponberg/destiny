@@ -42,7 +42,7 @@ module.exports.bootstrap = function(cb) {
 		streams: [
 		    {
 				type: 'rotating-file',
-		    	path: path.join(sails.config.destiny.repo, sails.config.destiny.httpLog.file),
+		    	path: path.resolve(sails.config.destiny.repo, sails.config.destiny.httpLog.file),
 				period: sails.config.destiny.httpLog.period,
 				count: sails.config.destiny.httpLog.copiesCount
 		    }
