@@ -19,7 +19,9 @@ fs.mkdirSync(outputPath);
 result = shelljs.exec('git rev-parse --abbrev-ref HEAD', {silent:true});
 
 if (result.code !== 0) {
-	console.log('Error: Unable to determine current branch');
+	console.log('Error: Unable to determine current branch. More details:');
+	console.log('\t' + result.stdout);
+	console.log('\t' + result.stderr);
 	shelljs.exit(1);
 }
 
