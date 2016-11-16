@@ -172,6 +172,7 @@ function findEndpointFromPath(path, testAuthorized) {
 	sources.idMap = idMap;
 	sources.globals = destiny.globals[versionKey];
 	sources.resources = destiny.resources;
+	sources.mocks = undefined;
 	sources.mockVersion = undefined;
 	sources.version = versionKey;
 
@@ -179,13 +180,7 @@ function findEndpointFromPath(path, testAuthorized) {
 
 		// mocks and interceptors from the local database
 
-		// mockVersion should always be "dev"
-
-		if (v == "dev") {
-			sources.mocks = findMocksRecursive(destiny.mock.routeMap, tokens, tokenStartI);			
-		} else {
-			sources.mocks = true;
-		}
+		sources.mocks = findMocksRecursive(destiny.mock.routeMap, tokens, tokenStartI);
 		sources.mockVersion = "dev";
 	}
 
