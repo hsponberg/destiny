@@ -58,6 +58,7 @@ if (result.code !== 0) {
 }
 
 console.log("Released " + nextVersion);
+console.log("*** Remember to git push with '--follow-tags' ***");
+
 console.log("Installing Api");
 childProcess.fork(pwd + "/installApi.js");
-
