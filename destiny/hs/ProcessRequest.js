@@ -260,7 +260,7 @@ ProcessRequest.prototype.makeCall = function(endpointProcessId, endpoint, spec) 
 
 	if (this.testConfig) {
 
-		key = sails._destiny.dependencies.findParameter(endpoint);
+		key = sails._destiny.dependencies.findParameter(self.source.version, endpoint);
 
 		self.workflow._callMocks[endpointProcessId] = {}; // no interceptor allowed in testing
 
@@ -276,14 +276,18 @@ ProcessRequest.prototype.makeCall = function(endpointProcessId, endpoint, spec) 
 		}
 	} else if (this.findMock) {
 
-		key = sails._destiny.dependencies.findParameter(endpoint);
+		if (self.source.version !== "dev") {
+			throw "findMock should not be available outside of dev";
+		}
+
+		key = sails._destiny.dependencies.findParameter(self.source.version, endpoint);
 
 		var findDependMock = sails._destiny.dependencies && sails._destiny.dependencies.mocksMap(self.source.version, endpoint) !== undefined;
 		if (findDependMock) {
 			mockKeyPaths.push(this.source.mockVersion + ":" + key.toLowerCase());
 		}
 
-		var findDependIntercept = sails._destiny.dependencies && sails._destiny.dependencies.interceptorsMap(endpoint) !== undefined;
+		var findDependIntercept = sails._destiny.dependencies && sails._destiny.dependencies.interceptorsMap(self.source.version, endpoint) !== undefined;
 		if (findDependIntercept) {
 			mockKeyPaths.push(this.source.mockVersion + ":int/" + key.toLowerCase());
 		}
@@ -604,7 +608,11 @@ ProcessRequest.prototype.processResults = function(endpointProcessId, endpoint, 
 
 	if (this.findMock && mockResult && mockResult.mock != -1) {
 
-		var key = sails._destiny.dependencies.findParameter(endpoint);
+		if (self.source.version !== "dev") {
+			throw "findMock should only be provided in dev";
+		}
+
+		var key = sails._destiny.dependencies.findParameter(self.source.version, endpoint);
 		var mocksMap = sails._destiny.dependInterceptors.routeMap[key]._interceptors;
 
 		var mock = mockResult.mock === undefined ? undefined : mocksMap[mockResult.mock];

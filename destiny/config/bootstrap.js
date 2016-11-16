@@ -28,6 +28,7 @@ module.exports.bootstrap = function(cb) {
 	destiny.findEndpointFromPath = findEndpointFromPath;
 	destiny.versionToMaxMinorVersion = {};
 	destiny.versionToMaxBugVersion = {};
+	destiny.maxVersionKey = 0;
 	destiny.globals = {};
 
 	var env = sails.config.dependEnvironment === undefined ? "production" : sails.config.dependEnvironment;
@@ -48,6 +49,8 @@ module.exports.bootstrap = function(cb) {
 		    }
 		  ]
 	} );
+
+	createDependencyMap();
 
 	buildRouteMaps();
 
@@ -114,6 +117,7 @@ function buildRouteMaps() {
 		}
 		buildVersionRouteMap(versionKey, path.join(versionPath, "endpoints"));
 		if (sails.config.destiny.enableReleaseTesting) {
+			buildDependencyMap(versionKey);
 			buildDependencyMockMap(versionKey, path.join(versionPath, "dependMocks"));
 		}
 	});
@@ -125,7 +129,7 @@ function buildRouteMap() {
 	var s = new Date().getTime();
 	buildVersionRouteMap("dev", sails.config.destiny.repo + '/endpoints');
 	buildMockMap(sails.config.destiny.repo + '/endpointsMocks');
-	buildDependencyMap(sails.config.destiny.repo + '/endpoints');
+	buildDependencyMap("dev");
 	buildDependencyMockMap("dev", sails.config.destiny.repo + '/dependMocks');
 	buildDependencyInterceptorsMap(sails.config.destiny.repo + '/dependInterceptors');
 	var e = new Date().getTime();
@@ -171,22 +175,18 @@ function findEndpointFromPath(path, testAuthorized) {
 	sources.mockVersion = undefined;
 	sources.version = versionKey;
 
-	if ((sails.config.destiny.publishDev && v == "dev") || 
-			versionKey == destiny.stagingVersionKey ||
-			testAuthorized) {
+	if (sails.config.destiny.publishDev && v == "dev") {
+
+		// mocks and interceptors from the local database
+
+		// mockVersion should always be "dev"
 
 		if (v == "dev") {
 			sources.mocks = findMocksRecursive(destiny.mock.routeMap, tokens, tokenStartI);			
 		} else {
 			sources.mocks = true;
 		}
-		if (v == "dev") {
-			sources.mockVersion = "dev";
-		} else if (versionKey == destiny.stagingVersionKey) {
-			sources.mockVersion = "staging";
-		} else {
-			sources.mockVersion = "production";
-		}
+		sources.mockVersion = "dev";
 	}
 
 	return sources;
@@ -497,23 +497,25 @@ function findMocksRecursive(obj, tokens, i) {
 	}
 }
 
-function buildDependencyMap(devPath) {
+function createDependencyMap() {
 
 	var destiny = sails._destiny;
 
-	destiny.dependencies = {
-		_urlToParameter: {},
-		_dependPointEnvMap: {},
-		findParameter : function(endpoint) {
+	var dpMap = {
+		_urlToParameter: {
+		},
+		_dependPointEnvMap: {
+		},
+		findParameter : function(version, endpoint) {
 			if (destiny.dependPointsEnvironment === "production") {
-				return destiny.dependencies._urlToParameter[endpoint];
+				return this._urlToParameter[version][endpoint];
 			} else {
-				var prodEndpoint = destiny.dependencies._dependPointEnvMap[destiny.dependPointsEnvironment][endpoint];
-				return destiny.dependencies._urlToParameter[prodEndpoint];
+				var prodEndpoint = this._dependPointEnvMap[version][destiny.dependPointsEnvironment][endpoint];
+				return this._urlToParameter[version][prodEndpoint];
 			}
 		},
 		mocksMap : function(version, endpoint) {
-			var key = destiny.dependencies.findParameter(endpoint);
+			var key = this.findParameter(version, endpoint);
 			var routeMap = sails._destiny.mockDependencies.routeMap[version][key];
 			if (routeMap !== undefined) {
 				return routeMap._mocks;
@@ -521,8 +523,11 @@ function buildDependencyMap(devPath) {
 				return undefined;
 			}
 		},
-		interceptorsMap : function(endpoint) {
-			var key = destiny.dependencies.findParameter(endpoint);
+		interceptorsMap : function(version, endpoint) {
+			if (version != "dev") {
+				throw "May only call interceptorsMap with 'dev' version";
+			}
+			var key = this.findParameter(version, endpoint);
 			var routeMap = sails._destiny.dependInterceptors.routeMap[key];
 			if (routeMap !== undefined) {
 				return routeMap._interceptors;
@@ -530,12 +535,23 @@ function buildDependencyMap(devPath) {
 				return undefined;
 			}
 		},
-		list : function() {
-			return destiny.dependencies._urlToParameter;
+		list : function(version) {
+			return this._urlToParameter[version];
 		}
 	};
 
-	var endPoints = destiny.versions["dev"].endPoints.production + '';
+	sails._destiny.dependencies = dpMap;
+}
+
+function buildDependencyMap(version) {
+
+	var dpMap = sails._destiny.dependencies;
+	dpMap._urlToParameter[version] = {};
+	dpMap._dependPointEnvMap[version] = {};
+
+	var destiny = sails._destiny;
+
+	var endPoints = destiny.versions[version].endPoints.production + '';
 
 	var lines = endPoints.split('\n');
 
@@ -559,21 +575,21 @@ function buildDependencyMap(devPath) {
     	url = url.substring(1);
     	url = url.substring(0, url.length - 2);
     	
-    	destiny.dependencies._urlToParameter[url] = parameter;
+    	dpMap._urlToParameter[version][url] = parameter;
 
     	tmpParameterToUrl[parameter] = url;
 	}
 
 	// For other endpoint environments, map the url to the production url
-	for (var env in destiny.versions["dev"].endPoints) {
+	for (var env in destiny.versions[version].endPoints) {
 
 		if (env == "production") {
 			continue;
 		}
 
-		destiny.dependencies._dependPointEnvMap[env] = {};
+		dpMap._dependPointEnvMap[version][env] = {};
 
-		var endPoints = destiny.versions["dev"].endPoints[env] + '';
+		var endPoints = destiny.versions[version].endPoints[env] + '';
 
 		var lines = endPoints.split('\n');
 
@@ -595,7 +611,7 @@ function buildDependencyMap(devPath) {
 	    	url = url.substring(1);
 	    	url = url.substring(0, url.length - 2);
 	    	
-	    	destiny.dependencies._dependPointEnvMap[env][url] = tmpParameterToUrl[parameter];
+	    	dpMap._dependPointEnvMap[version][env][url] = tmpParameterToUrl[parameter];
 		}		
 	}
 }
@@ -606,6 +622,14 @@ function getVersionKey(name, buildVersionToMaxBugVersion) {
 
 	if (name == "dev") {
 		return name;
+	} else if (name == "test") {
+		if (sails.config.destiny.publishDev) {
+			return "dev";
+		} else if (sails._destiny.stagingVersionKey) {
+			return sails._destiny.stagingVersionKey;
+		} else {
+			return sails._destiny.maxVersionKey;
+		}
 	} else if (name.indexOf("v") != 0) {
 		return undefined;
 	}
@@ -646,6 +670,10 @@ function getVersionKey(name, buildVersionToMaxBugVersion) {
 		if (!maxVersion || maxVersion < keyInt) {
 			sails._destiny.versionToMaxMinorVersion[versionWithoutMinor] = keyInt;
 		}
+	}
+
+	if (sails._destiny.maxVersionKey < keyInt) {
+		sails._destiny.maxVersionKey = keyInt;
 	}
 
 	return keyInt;

@@ -90,7 +90,7 @@ module.exports = {
 
 		var list = [];
 
-		var depends = sails._destiny.dependencies.list();
+		var depends = sails._destiny.dependencies.list("dev");
 		for (var k in depends) {
 			var d = {};
 			d.path = depends[k].toLowerCase();
