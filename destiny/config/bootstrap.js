@@ -38,14 +38,15 @@ module.exports.bootstrap = function(cb) {
 		throw "Must define appName in env js";
 	}
 
+	var logFile = sails.config.destiny.httpLog.file;
+	logFile += '_' + process.pid;
+	logFile += '.' + sails.config.destiny.httpLog.fileExtension;
+
 	destiny.httpLog = bunyan.createLogger( { 
 		name: sails.config.destiny.appName,
 		streams: [
 		    {
-				type: 'rotating-file',
-		    	path: path.resolve(sails.config.destiny.repo, sails.config.destiny.httpLog.file),
-				period: sails.config.destiny.httpLog.period,
-				count: sails.config.destiny.httpLog.copiesCount
+		    	path: path.resolve(sails.config.destiny.repo, logFile)
 		    }
 		  ]
 	} );
