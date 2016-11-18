@@ -12,7 +12,7 @@
 var fs = require("fs");
 var path = require('path');
 var chokidar = require('chokidar');
-var redis = require("redis");
+var Redis = require('ioredis');
 var bunyan = require('bunyan');
 
 module.exports.bootstrap = function(cb) {
@@ -798,8 +798,10 @@ function parseDestinyConfig(destiny) {
 		redisConfig.enabled == true) {
 
 		destiny.redis.enabled = true;
-		destiny.redis.client = redis.createClient(redisConfig.connectionOptions);
-		destiny.redis.keyPrefix = redisConfig.keyPrefix;
-	}
 
+		destiny.redis.client = new Redis.Cluster([redisConfig.connectionOptions],
+			{
+				keyPrefix: redisConfig.keyPrefix,
+			});
+	}
 }

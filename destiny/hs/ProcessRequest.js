@@ -133,7 +133,7 @@ ProcessRequest.prototype.makeResponseCacheKey = function() {
 	// Therefore, we do not need to sort the parameters here
 	var s = querystring.stringify(this.workflow.req.params); 
 
-	this.responseCacheKey = sails._destiny.redis.keyPrefix + ':' + this.source.path + '?' + s;
+	this.responseCacheKey = this.source.path + '?' + s;
 }
 
 ProcessRequest.prototype.checkCache = function(callEndpointRequest) {
