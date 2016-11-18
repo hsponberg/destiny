@@ -802,6 +802,26 @@ function parseDestinyConfig(destiny) {
 		destiny.redis.client = new Redis.Cluster([redisConfig.connectionOptions],
 			{
 				keyPrefix: redisConfig.keyPrefix,
+				redisOptions: {
+					keyPrefix: redisConfig.keyPrefix,
+				},
+				enableOfflineQueue: false,
+				clusterRetryStrategy: function (times) {
+				  var delay = Math.pow(2, times) * 50;
+				  delay = Math.min(delay, 15000);
+				  return delay;
+				}
 			});
+
+		destiny.redis.client.on('error', function (channel, message) {
+			var obj = {
+				meta: {
+					channel: channel,
+					message: message
+				}
+			}
+			console.log(obj);
+			sails._destiny.httpLog.error(obj, 'Redis Error');
+		});
 	}
 }
