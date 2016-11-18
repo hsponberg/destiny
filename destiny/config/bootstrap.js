@@ -39,7 +39,9 @@ module.exports.bootstrap = function(cb) {
 	}
 
 	var logFile = sails.config.destiny.httpLog.file;
-	logFile += '_' + process.pid;
+	if (sails.config.destiny.httpLog.fileInsertProcessId) {
+		logFile += '_' + process.pid;		
+	}
 	logFile += '.' + sails.config.destiny.httpLog.fileExtension;
 
 	destiny.httpLog = bunyan.createLogger( { 
