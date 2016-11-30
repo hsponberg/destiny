@@ -8,6 +8,11 @@
 var ProcessRequest = require("../../hs/ProcessRequest");
 var fs = require("fs");
 
+var healthPool = {
+	contents: 'live',
+	time: 0
+}
+
 module.exports = {
 
 	request : function(req, res) {
@@ -150,6 +155,34 @@ module.exports = {
 		return res.ok();
 	},
 
+	healthPool : function(req, res) {
+
+		// If an admin is ssh into this server,
+		// can take it out of the pool by editing pool.txt
+		// and setting it to something other than 'live'
+
+		// It isn't necessary to use this when turning off the service for a
+		// redeploy because has graceful shutdown, ie. will finish existing 
+		// requests after stop taking new requests
+
+		// Cache in memory for 1 second
+		var s = new Date().getTime();
+		if (s - healthPool.time < 1000) {
+			return res.ok(healthPool.contents);
+		}
+
+		// Read from file
+		fs.readFile('pool.txt', 'utf8', function(err, contents) {
+			healthPool.time = new Date().getTime();
+			if (err) {
+				res.ok("error");
+				healthPool.contents = "error";
+			} else {				
+				res.ok(contents);	
+				healthPool.contents = contents;
+			}
+		});
+	}
 };
 
 function respondWithMock(req, res, sources) {

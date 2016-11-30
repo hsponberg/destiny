@@ -34,7 +34,10 @@ module.exports.routes = {
 
   '/api/apiadmin': {
     policy: 'isDev',
-    view: 'homepage'
+    view: 'homepage',
+    locals: {
+      layout: 'layout'
+    }
   },
   '/api/endpoints' : {
     policy: 'isDev',
@@ -65,6 +68,13 @@ module.exports.routes = {
     policy: 'isDev',
     controller: 'ApiController',
     action: 'putDependPointEnvironment'
+  },
+  '/api/status': {
+    response: 'ok'
+  },
+  '/health/pool.txt': {
+    controller: 'ApiController',
+    action: 'healthPool'
   },
   '/api/*' : {
     controller: 'ApiController',
