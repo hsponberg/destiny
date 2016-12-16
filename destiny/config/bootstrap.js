@@ -38,7 +38,13 @@ module.exports.bootstrap = function(cb) {
 		throw "Must define appName in env js";
 	}
 
+	var date = new Date();
+	var dateformat = "-" + date.getFullYear() + (date.getMonth() + 1) + date.getDate() + "-" + date.getTime();
+
 	var logFile = sails.config.destiny.httpLog.file;
+	if (sails.config.destiny.httpLog.fileInsertDate) {
+		logFile += dateformat;
+	}
 	if (sails.config.destiny.httpLog.fileInsertProcessId) {
 		logFile += '_' + process.pid;		
 	}
