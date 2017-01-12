@@ -15,6 +15,7 @@ function ProcessRequest(req, res) {
 
 	var log = this.initLog();
 	log._level = (sails.config.destiny.apiLogLevel === undefined) ? { default: log._kLevelOff } : sails.config.destiny.apiLogLevel;
+	log._httpAppLoggingThreshold = (sails.config.destiny.httpLog.appLoggingThreshold === undefined) ?  log._kLevelError : sails.config.destiny.httpLog.appLoggingThreshold;
 
 	this.LOG = log;	
 }
@@ -136,7 +137,7 @@ ProcessRequest.prototype.makeResponseCacheKey = function() {
 	this.responseCacheKey = this.source.path + '?' + s;
 }
 
-ProcessRequest.prototype.checkCache = function(callEndpointRequest) {
+ProcessRequest.prototype.checkCache = function() {
 	var self = this;
 	sails._destiny.redis.client.get(self.responseCacheKey, function(err, reply) {
 	    if (!err && reply) {
@@ -866,7 +867,7 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 			this.res.serverError(this.workflow._error);			
 		}
 	} else {
-		this.LOG.debug("destiny.response", this.workflow._output);
+		this.LOG.debug("destiny", this.workflow._output);
 		this.res.set(this.workflow._outputHeaders);
 
 		this.res.ok(this.workflow._output);
@@ -1072,9 +1073,9 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 	}
 	console.log(mode + msg);
 
-	var httpLoggingThreshold = this.LOG._kLevelError;
+	var httpLoggingThreshold = this.LOG._httpAppLoggingThreshold;
 	if (threshold >= httpLoggingThreshold) {
-		this.logHttpError('Application Error', {
+		this.logHttpError('Application Msg', {
 			level: mode,
 			msg: msg
 		});
