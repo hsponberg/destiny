@@ -8,6 +8,8 @@ var uuid = require('node-uuid');
 
 var responseCacheKey = undefined;
 
+var clientCacheKeyPrefix = "_client:";
+
 function ProcessRequest(req, res) {
 
 	this.req = req;
@@ -136,7 +138,7 @@ ProcessRequest.prototype.makeResponseCacheKey = function() {
 	this.responseCacheKey = this.source.path + '?' + s;
 }
 
-ProcessRequest.prototype.checkCache = function(callEndpointRequest) {
+ProcessRequest.prototype.checkCache = function() {
 	var self = this;
 	sails._destiny.redis.client.get(self.responseCacheKey, function(err, reply) {
 	    if (!err && reply) {
@@ -334,6 +336,56 @@ ProcessRequest.prototype.makeMockOrRealCall = function(endpointProcessId, endpoi
 		}					
 	} else {
 		return makeRealCall();
+	}
+}
+
+ProcessRequest.prototype.makeCallCacheGet = function(key) {
+
+	var self = this;
+
+	var redisKey = clientCacheKeyPrefix + key;
+
+	if (!sails._destiny.redis.enabled) {
+		process.nextTick(function() {
+			self.safe(self.source.currentEndpoint, 'cacheGetException("' + key + '")', function() { 
+				self.processCacheGetExceptionHelper(key);
+			});
+		});
+	} else {
+		sails._destiny.redis.client.get(redisKey, function(err, reply) {
+		    if (!err && reply) {
+		    	// Cache hit
+		    	self.safe(self.source.currentEndpoint, 'cacheGetResults("' + key + '")', function() { 
+					self.processCacheGetResultsHelper(key, reply);
+				});
+		    } else {
+		    	// Cache miss
+		    	self.safe(self.source.currentEndpoint, 'cacheGetException("' + key + '")', function() { 
+					self.processCacheGetExceptionHelper(key);
+				});	    	
+		    }
+		});			
+	}
+}
+
+ProcessRequest.prototype.makeCallCachePut = function(key, value, expirationInSeconds) {
+
+	if (!sails._destiny.redis.enabled) {
+		return;
+	}
+
+	if (expirationInSeconds === undefined) {
+		expirationInSeconds = 0;
+	}
+
+	var self = this;
+
+	var redisKey = clientCacheKeyPrefix + key;
+
+	if (expirationInSeconds > 0) {
+		sails._destiny.redis.client.setex(redisKey, expirationInSeconds, value);
+	} else {
+		sails._destiny.redis.client.set(redisKey, value);
 	}
 }
 
@@ -642,6 +694,13 @@ ProcessRequest.prototype.processResultsHelper = function(endpointProcessId, stat
 	this.renderResponseIfReady();
 }
 
+ProcessRequest.prototype.processCacheGetResultsHelper = function(key, value) {
+
+	this.context._processCacheGetResultsMap[key](value, this.workflow);
+	this.workflow._cacheCallsInProgress[key] = false;
+	this.renderResponseIfReady();
+}
+
 ProcessRequest.prototype.processTimeout = function(endpointProcessId, allowTimeout, timeout, dependUrl) {
 
 	var self = this;
@@ -709,12 +768,24 @@ ProcessRequest.prototype.processNotOkHelper = function(endpointProcessId, code, 
 	this.renderResponseIfReady();
 }
 
+ProcessRequest.prototype.processCacheGetExceptionHelper = function(key) {
+
+	this.context._processCacheGetExceptionMap[key](this.workflow);
+	this.workflow._cacheCallsInProgress[key] = false;
+	this.renderResponseIfReady();
+}
+
 ProcessRequest.prototype.renderResponseIfReady = function() {
 	if (this.workflow.hasError()) {
 		return this.renderResponse();
 	}
 	for (var k in this.workflow._callsInProgress) {
 		if (this.workflow._callsInProgress[k]) {
+			return;
+		}
+	}
+	for (var k in this.workflow._cacheCallsInProgress) {
+		if (this.workflow._cacheCallsInProgress[k]) {
 			return;
 		}
 	}
@@ -914,6 +985,7 @@ ProcessRequest.prototype.renderError = function(errorCode, errorMessage, moreErr
 ProcessRequest.prototype.initWorkflow = function(self) {
 	var workflow = {
 		_callsInProgress : {},
+		_cacheCallsInProgress : {},
 		_callMocks : {},
 		_output : {},
 		_error : undefined,
@@ -1012,6 +1084,23 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		idMap: function(paramName) {
 			return self.workflow._idMap[paramName];
+		},
+		cacheGet: function(key) {
+			if (self.workflow._finalizing) {
+				return self.renderError("server", "cache call not allowed after finalizing",
+					"cache call not allowed after finalizing: " + endpoint);
+			} else {
+				self.workflow._cacheCallsInProgress[key] = true;
+				self.makeCallCacheGet(key);
+			}
+		},
+		cachePut: function(key, value, expirationInSeconds) {
+			if (self.workflow._finalizing) {
+				return self.renderError("server", "cache call not allowed after finalizing",
+					"cache call not allowed after finalizing: " + endpoint);
+			} else {
+				self.makeCallCachePut(key, value, expirationInSeconds);
+			}
 		}
 	}
 	return workflow;
@@ -1089,6 +1178,8 @@ ProcessRequest.prototype.initContext = function(log) {
 		_request : undefined,
 		_processResultsMap : {},
 		_processExceptionMap : {},
+		_processCacheGetResultsMap : {},
+		_processCacheGetExceptionMap : {},
 		_finalize: undefined,
 		config : sails.config.destiny.apiContextConfig,
 		LOG : log,
@@ -1135,7 +1226,23 @@ ProcessRequest.prototype.initContext = function(log) {
 			} else {
 				return self.source.resources[name];				
 			}
-		}
+		},
+		cacheGetResults : function(key, func) {
+			if (sandbox._processCacheGetResultsMap[key] !== undefined) {
+				var obj = new Error("cache get results already called with key " + key);
+				obj.errorTag = "destiny";
+				throw obj;
+			}
+			sandbox._processCacheGetResultsMap[key] = func;
+		},
+		cacheGetException : function(key, func) {
+			if (sandbox._processCacheGetExceptionMap[key] !== undefined) {
+				var obj = new Error("cache get exception already called with key " + key);
+				obj.errorTag = "destiny";
+				throw obj;
+			}
+			sandbox._processCacheGetExceptionMap[key] = func;
+		}	
 	};
 
 	var context = vm.createContext(sandbox);
