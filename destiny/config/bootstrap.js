@@ -752,6 +752,7 @@ function loadGlobals(v, versionPath) {
 	fs.readdirSync(path.join(versionPath, "_global")).filter(function(file) {
 		var filePath = path.join(versionPath, "_global", file);
 		if (file.startsWith("dependPoints.") ||
+			file.startsWith(".") ||
 			fs.statSync(filePath).isDirectory()) {
 			return;
 		}
@@ -774,7 +775,8 @@ function loadMiddleware(v, versionPath) {
 
 	fs.readdirSync(middlewarePath).filter(function(file) {
 		var filePath = path.join(versionPath, "_middleware", file);
-		if (fs.statSync(filePath).isDirectory()) {
+		if (fs.statSync(filePath).isDirectory() ||
+			file.startsWith(".")) {
 			return;
 		}
 		var g = require(path.resolve(filePath));

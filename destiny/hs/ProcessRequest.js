@@ -62,12 +62,12 @@ ProcessRequest.prototype.processRequest = function(source) {
 		this.context.destiny_config = {};
 	}
 
+	this.processHttpHeaderParameters();
+
 	this.processMiddleware();
 }
 
 ProcessRequest.prototype.processRequestAfterMiddleware = function(source) {
-
-	this.processHttpHeaderParameters();
 
 	if (this.processInput(this.req)) {
 		this.workflow.req.headers = this.req.headers;
@@ -102,7 +102,7 @@ ProcessRequest.prototype.processMiddlewareHelper = function(middleware) {
 
 	var name = middleware.shift();
 	var module = this.source.middleware[name];
-	module.request(this.req, this.workflow, function() {
+	module.request(this.req, this.workflow, this.context, function() {
 
 		if (self.workflow.hasError()) {
 			return self.renderResponse();
