@@ -62,11 +62,16 @@ ProcessRequest.prototype.processRequest = function(source) {
 		this.context.destiny_config = {};
 	}
 
+	this.processMiddleware();
+}
+
+ProcessRequest.prototype.processRequestAfterMiddleware = function(source) {
+
 	this.processHttpHeaderParameters();
 
 	if (this.processInput(this.req)) {
-		self.workflow.req.headers = this.req.headers;
-		self.workflow.req.method = this.req.method;
+		this.workflow.req.headers = this.req.headers;
+		this.workflow.req.method = this.req.method;
 
 		var cacheResponseDuration = this.context.destiny_config.cache_response_duration;
 		if (sails._destiny.redis.enabled && cacheResponseDuration >= 0) {
@@ -76,7 +81,35 @@ ProcessRequest.prototype.processRequest = function(source) {
 			this.callEndpointRequest();
 		}
 	}
+}
 
+ProcessRequest.prototype.processMiddleware = function() {
+
+	var middleware = [];
+	for (var i in this.context.destiny_config.middleware) {
+		middleware.push(this.context.destiny_config.middleware[i]);
+	}
+	this.processMiddlewareHelper(middleware);
+}
+
+ProcessRequest.prototype.processMiddlewareHelper = function(middleware) {
+
+	if (middleware.length === 0) {
+		return this.processRequestAfterMiddleware();
+	}
+
+	var self = this;
+
+	var name = middleware.shift();
+	var module = this.source.middleware[name];
+	module.request(this.req, this.workflow, function() {
+
+		if (self.workflow.hasError()) {
+			return self.renderResponse();
+		}
+
+		self.processMiddlewareHelper(middleware);
+	});
 }
 
 ProcessRequest.prototype.processHttpHeaderParameters = function() {
@@ -996,6 +1029,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_idMap: {},
 		_outputHeaders : {},
 		_outputHeadersNotInResponse : {},
+		data : {},
 		req : {
 			headers: {},
 			params: {}

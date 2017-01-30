@@ -30,6 +30,7 @@ module.exports.bootstrap = function(cb) {
 	destiny.versionToMaxBugVersion = {};
 	destiny.maxVersionKey = 0;
 	destiny.globals = {};
+	destiny.middleware = {};
 
 	var env = sails.config.dependEnvironment === undefined ? "production" : sails.config.dependEnvironment;
 	destiny.dependPointsEnvironment = env;
@@ -180,6 +181,7 @@ function findEndpointFromPath(path, testAuthorized) {
 	sources.idPath = ids;
 	sources.idMap = idMap;
 	sources.globals = destiny.globals[versionKey];
+	sources.middleware = destiny.middleware[versionKey];
 	sources.resources = destiny.resources;
 	sources.mocks = undefined;
 	sources.mockVersion = undefined;
@@ -256,6 +258,7 @@ function buildVersionRouteMap(v, versionPath) {
 	buildMapRecursive(versionPath, destiny.versions[v].routeMap);
 
 	loadGlobals(v, versionPath);
+	loadMiddleware(v, versionPath);
 }
 
 function buildMapRecursive(versionPath, obj) {
@@ -756,6 +759,28 @@ function loadGlobals(v, versionPath) {
 		i = file.indexOf('.js');
 		var key = file.substring(0, i);
 		sails._destiny.globals[v][key] = g;
+	});	
+}
+
+function loadMiddleware(v, versionPath) {
+
+	sails._destiny.middleware[v] = {};
+
+	var middlewarePath = path.join(versionPath, "_middleware");
+
+	if (!fs.existsSync(middlewarePath)) {
+		return;
+	}
+
+	fs.readdirSync(middlewarePath).filter(function(file) {
+		var filePath = path.join(versionPath, "_middleware", file);
+		if (fs.statSync(filePath).isDirectory()) {
+			return;
+		}
+		var g = require(path.resolve(filePath));
+		i = file.indexOf('.js');
+		var key = file.substring(0, i);
+		sails._destiny.middleware[v][key] = g;
 	});	
 }
 
