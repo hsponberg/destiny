@@ -169,7 +169,9 @@ ProcessRequest.prototype.makeResponseCacheKey = function() {
 	// Therefore, we do not need to sort the parameters here
 	var s = querystring.stringify(this.workflow.req.params); 
 
-	this.responseCacheKey = this.source.path + '?' + s;
+	// this.req.url contains the url path with restful ids
+	// ie. /api/v1.0.0/race/raceevent/7
+	this.responseCacheKey = this.req.url + '?' + s;
 }
 
 ProcessRequest.prototype.checkCache = function() {
