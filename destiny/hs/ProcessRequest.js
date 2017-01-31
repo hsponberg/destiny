@@ -886,6 +886,7 @@ ProcessRequest.prototype.castInputParam = function(val, k, type) {
 	} else if (type == "number") {
 		if (isNaN(val)) {
 			this.renderError("input", "input is wrong type (" + type + "), was: " + k + ' = ' + val);
+			result.error = true;
 		} else {
 			result.val = +val;
 		}
