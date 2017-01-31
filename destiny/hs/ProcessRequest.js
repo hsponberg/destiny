@@ -498,6 +498,8 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 	for (var i in spec.headers) {
 		if (spec.headers[i] !== undefined) {
 			headers[i] = spec.headers[i];
+		} else {
+			delete headers[i];
 		}
 	}
 
