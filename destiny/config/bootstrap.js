@@ -121,7 +121,11 @@ function buildRouteMaps() {
 		if (isStaging) {
 			file = file.substring(1);
 		}
-		versionKey = getVersionKey("v" + file, !isStaging);
+		if (sails.config.destiny.publishEnvironmentBranch && process.env.NODE_ENV == file) {
+			versionKey = file;
+		} else {
+			versionKey = getVersionKey("v" + file, !isStaging);			
+		}
 		if (isStaging) {
 			sails._destiny.stagingVersionKey = versionKey;
 		}
@@ -638,7 +642,11 @@ function getVersionKey(name, buildVersionToMaxBugVersion) {
 			return sails._destiny.maxVersionKey;
 		}
 	} else if (name.indexOf("v") != 0) {
-		return undefined;
+		if (sails.config.destiny.publishEnvironmentBranch && process.env.NODE_ENV == name) {
+			return name;
+		} else  {
+			return undefined;			
+		}
 	}
 
 	var tokens = name.substring(1).split(".");

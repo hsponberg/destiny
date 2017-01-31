@@ -4,6 +4,12 @@ var path = require("path");
 var repoPath = require("./config/local").destiny.repo;
 repoPath = path.resolve(__dirname, repoPath);
 
+var nodeEnv = process.env.NODE_ENV;
+var envSettings = {};
+if (nodeEnv !== undefined) {
+	envSettings = require("./config/env/" + process.env.NODE_ENV + ".js").destiny;
+}
+
 var pwd = shelljs.pwd();
 shelljs.cd(repoPath);
 
@@ -79,8 +85,27 @@ var tagI = 0;
 for (var i in list) {
 
 	if (list[i].indexOf("_api_v") == 0 || list[i].indexOf("_api_staging_v") == 0) {
-    	tags.push(list[i]);
+
+		var currentTagName = list[i];
+	    var sI = currentTagName.indexOf("_v"); 
+	    var stagingPrefix = currentTagName.indexOf("staging") == -1 ? "" : "s";
+	    var versionPath = currentTagName.substring(sI + 2); // remove _api_v or _api_staging_v
+	    var tagPath = stagingPrefix + versionPath;
+
+		var tag = {
+			tag: currentTagName,
+			path: tagPath
+		}
+
+    	tags.push(tag);
     }
+}
+
+if (envSettings.publishEnvironmentBranch) {
+	tags.push({
+		tag: envSettings.environmentBranch,
+		path: nodeEnv
+	});	
 }
 
 for (var i in tags) {
@@ -91,7 +116,8 @@ exit(0); // And pop stash
 
 function processTag(index) {
 
-	var currentTagName = tags[index];
+	var currentTag = tags[index];
+	var currentTagName = currentTag.tag;
 
 	console.log("Processing tag " + currentTagName);
 
@@ -102,11 +128,8 @@ function processTag(index) {
 		exit(1);
 	}
 
-    var sI = currentTagName.indexOf("_v"); 
-    var stagingPrefix = currentTagName.indexOf("staging") == -1 ? "" : "s";
-    var versionPath = currentTagName.substring(sI + 2); // remove _api_v or _api_staging_v
-    var dest = path.join(outputPath, stagingPrefix + versionPath, endpointPath);
-    var dependMocksDest = path.join(outputPath, stagingPrefix + versionPath, dependMocksPath);
+    var dest = path.join(outputPath, currentTag.path, endpointPath);
+    var dependMocksDest = path.join(outputPath, currentTag.path, dependMocksPath);
 
 	result = shelljs.exec('git ls-tree --full-tree -r HEAD', {silent:true});
 
