@@ -332,6 +332,58 @@ workflow.call(MY_SECURE_ENDPOINT, {
     }
 });
 ```
+## Middleware
+
+Custom Middleware can be injected for any Endpoint. Middleware runs when an Endpoint is hit before the ```request``` method is called. A Middleware can do anything you code into it. The Middleware can strip out headers, parameters, add headers and parameters, add data to the workflow, etc. It can also add an error to the workflow, in which case the call will return an error and not invoke any methods within the Endpoint.
+
+Middleware calls are executed sequentially, such that the second Middleware will not execute until the first Middleware invokes the callback. The executions themselves are asynchronous and Destiny will not move to the next processing step until the callback is invoked. If the callback is never invoked (coding bug) then the Endpoint will never resolve.
+
+Within an Endpoint, Middleware is plugged in into the destiny_config section.
+
+```javascript
+var destiny_config = {
+    middleware: [
+        "authenticateUser", // Authenticates the user via our Authentication Service, inserts userId
+        "requireUserId" // Requires the user to be authenticated to use this Endpoint
+    ]
+};
+```
+
+A Middleware is a node module, placed in the ```endpoints/_middleware``` folder. It should export a request method. A callback is passed into the request method as the last object. Destiny will not continue processing the next Middleware or the Endpoint until the callback is called. After each Middleware, Destiny checks to see if an error has been posted to the workflow. If so, the call will immediately return the error.
+
+Example ```endpoints/_middleware/authenticateUser.js```
+
+```javascript
+request: function(req, workflow, endpoint, cb) {
+    if (req.headers.authtoken === undefined) {
+        return cb();
+    }
+    endpoint.results(endpoint.AUTH, function (status, response, workflow) {
+        workflow.data.userId = response.userId;
+        cb();
+    });
+    endpoint.exception(endpoint.AUTH, function (status, response, workflow) {
+        workflow.error('Authentication Failed');
+        cb();
+    });
+    workflow.call(endpoint.AUTH, {
+        headers: {
+           'AuthToken': req.headers.authtoken
+        }
+    });
+});
+```
+
+Example ```endpoints/_middleware/requireUserId.js```
+
+```javascript
+request: function(req, workflow, endpoint, cb) {
+    if (workflow.data.userId === undefined) {
+        workflow.error('User is required to be authenticated');
+    }
+    cb();
+});
+```
 
 ## Logging
 
