@@ -124,7 +124,10 @@ function buildRouteMaps() {
 		if (sails.config.destiny.publishEnvironmentBranch && process.env.NODE_ENV == file) {
 			versionKey = file;
 		} else {
-			versionKey = getVersionKey("v" + file, !isStaging);			
+			versionKey = getVersionKey("v" + file, !isStaging);
+			if (isNaN(versionKey)) {
+				return;
+			}
 		}
 		if (isStaging) {
 			sails._destiny.stagingVersionKey = versionKey;

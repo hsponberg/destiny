@@ -4,12 +4,6 @@ var path = require("path");
 var repoPath = require("./config/local").destiny.repo;
 repoPath = path.resolve(__dirname, repoPath);
 
-var nodeEnv = process.env.NODE_ENV;
-var envSettings = {};
-if (nodeEnv !== undefined) {
-	envSettings = require("./config/env/" + process.env.NODE_ENV + ".js").destiny;
-}
-
 var pwd = shelljs.pwd();
 shelljs.cd(repoPath);
 
@@ -101,12 +95,22 @@ for (var i in list) {
     }
 }
 
-if (envSettings.publishEnvironmentBranch) {
-	tags.push({
-		tag: envSettings.environmentBranch,
-		path: nodeEnv
-	});	
-}
+fs.readdirSync("./config/env").filter(function(file) {
+	if (fs.statSync(path.join("./config/env", file)).isDirectory() ||
+		file.startsWith(".")) {
+
+		return;
+	}
+	var envSettings = require("./config/env/" + file).destiny;
+	if (envSettings.publishEnvironmentBranch) {
+		var i = file.indexOf(".");
+		var env = file.substring(0, i);
+		tags.push({
+			tag: envSettings.environmentBranch,
+			path: env
+		});	
+	}
+});
 
 for (var i in tags) {
 	processTag(i);
