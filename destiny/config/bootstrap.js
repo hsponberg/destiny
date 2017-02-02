@@ -32,7 +32,7 @@ module.exports.bootstrap = function(cb) {
 	destiny.globals = {};
 	destiny.middleware = {};
 
-	var env = sails.config.dependEnvironment === undefined ? "production" : sails.config.dependEnvironment;
+	var env = sails.config.destiny.dependEnvironment === undefined ? "production" : sails.config.destiny.dependEnvironment;
 	destiny.dependPointsEnvironment = env;
 
 	if (sails.config.destiny.appName === undefined) {
