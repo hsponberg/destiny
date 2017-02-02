@@ -152,9 +152,17 @@ function processTag(index) {
 			continue;
 		} else if (file.startsWith("endpoints/")) {
 
-            if (file.indexOf('/dependPoints.') != -1 && file.indexOf('/dependPoints.js') == -1) {
-            	// Another environment like uat
-            	continue;
+            if (file.indexOf('/dependPoints.') != -1 && 
+            	file.indexOf('/dependPoints.js') == -1) {
+            	
+            	var i = file.indexOf(".");
+            	var i2 = file.indexOf(".", i + 1);				
+				var env = file.substring(i + 1, i2);
+
+            	// Another environment like uat that is not the current environment
+            	if (env != nodeEnv) {
+            		continue;
+            	}
             }
 
             var err = copyFile(file, dest);

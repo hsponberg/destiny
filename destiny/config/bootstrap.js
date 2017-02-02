@@ -368,7 +368,7 @@ function findEndpointEnvironments(v, versionPath) {
 
 	endpoints.production = fs.readFileSync(path.join(versionPath, "_global", "dependPoints.js"));
 
-	if (v != "dev") {
+	if (v != "dev" && process.env.NODE_ENV != v) {
 		return endpoints;
 	}
 
