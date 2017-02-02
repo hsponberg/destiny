@@ -13,6 +13,8 @@ var outputPath = path.join(repoPath, ".tmp");
 var endpointPath = "endpoints";
 var dependMocksPath = "dependMocks";
 
+var nodeEnv = process.env.NODE_ENV;
+
 fs.removeSync(outputPath);
 fs.mkdirSync(outputPath);
 
@@ -102,9 +104,9 @@ fs.readdirSync("./config/env").filter(function(file) {
 		return;
 	}
 	var envSettings = require("./config/env/" + file).destiny;
-	if (envSettings.publishEnvironmentBranch) {
-		var i = file.indexOf(".");
-		var env = file.substring(0, i);
+	var i = file.indexOf(".");
+	var env = file.substring(0, i);
+	if (envSettings.publishEnvironmentBranch && env === nodeEnv) {
 		tags.push({
 			tag: envSettings.environmentBranch,
 			path: env
