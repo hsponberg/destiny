@@ -156,6 +156,7 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 ProcessRequest.prototype.callEndpointRequest = function() {
 	var self = this;
 	this.safe(this.source.currentEndpoint, "request()", function() { 
+		self.LOG.debug("destiny.request", "Request to " + self.req.baseUrl + "" + self.req.originalUrl);
 		self.context._request(self.workflow.req, self.workflow); 
 	});
 	this.renderResponseIfReady();
@@ -746,6 +747,7 @@ ProcessRequest.prototype.processResults = function(endpointProcessId, endpoint, 
 
 ProcessRequest.prototype.processResultsHelper = function(endpointProcessId, status, response) {
 
+	this.LOG.debug("destiny.dependResult", "Result for " + endpointProcessId + ": " + JSON.stringify(response));
 	this.context._processResultsMap[endpointProcessId](status, response, this.workflow);
 	this.workflow._callsInProgress[endpointProcessId] = false;
 	this.renderResponseIfReady();
@@ -781,6 +783,7 @@ ProcessRequest.prototype.processTimeoutHelper = function(endpointProcessId, allo
 		var status = {};
 		status.code = 0;
 		status.timedOut = true;
+		this.LOG.debug("destiny.processException", "Timeout for " + endpointProcessId);
 		this.context._processExceptionMap[endpointProcessId](status, undefined, this.workflow);
 	} else if (!allowTimeout) {
 		this.LOG.info("destiny", "request timed out: {0}", endpointProcessId);
@@ -806,6 +809,7 @@ ProcessRequest.prototype.processNotOk = function(endpointProcessId, code, error,
 	});	
 
 	self.safe(self.source.currentEndpoint, 'exception("' + endpointProcessId + '")', function() { 
+		self.LOG.debug("destiny.processException", "endpoint " + endpointProcessId + " failed code: " + JSON.stringify(code) + " error: " + error + " response: " + JSON.stringify(response));
 		self.processNotOkHelper(endpointProcessId, code, error, response, allowError);
 	});
 	this.workflow._callsInProgress[endpointProcessId] = false;
@@ -1012,7 +1016,7 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 			this.res.serverError(this.workflow._error);			
 		}
 	} else {
-		this.LOG.debug("destiny", this.workflow._output);
+		this.LOG.debug("destiny.response", "Response for " + this.req.baseUrl + "" + this.req.originalUrl + ": " + JSON.stringify(this.workflow._output));
 		this.res.set(this.workflow._outputHeaders);
 
 		this.res.ok(this.workflow._output);
@@ -1083,6 +1087,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			return self.workflow._renderedResponse;
 		},
 		call : function(endpoint, spec, endpointProcessId) {
+			self.LOG.debug("destiny.call", "Call to " + endpoint + " ids:" + JSON.stringify(spec.restIds));
 			if (self.workflow._finalizing) {
 				return self.renderError("server", "call not allowed after finalizing",
 					"call not allowed after finalizing: " + endpoint);
