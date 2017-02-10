@@ -153,7 +153,7 @@ function buildRouteMap() {
 	console.log("Reloaded dev files in " + (e - s) + " millis");
 }
 
-function findEndpointFromPath(path, testAuthorized) {
+function findEndpointFromPath(path, httpMethod, testAuthorized) {
 
 	// First try absolute path
 	// Second, assume restful, alternating between resource and id
@@ -176,6 +176,12 @@ function findEndpointFromPath(path, testAuthorized) {
 	var path = [];
 	var idMap = {};
 	var currentEndpoint = findEndpointRecursive(destiny.versions[versionKey].routeMap, tokens, tokenStartI, path, ids, idMap);
+
+	if (!currentEndpoint) {
+		return undefined;
+	}
+
+	currentEndpoint = currentEndpoint[httpMethod];
 
 	if (!currentEndpoint) {
 		return undefined;
@@ -260,7 +266,7 @@ function buildVersionRouteMap(v, versionPath) {
 	destiny.versions[v] = {};
 	destiny.versions[v].endPoints = findEndpointEnvironments(v, versionPath);
 	destiny.versions[v].routeMap = {}; // Key for each folder, _files has map of files to content
-	destiny.versions[v].routeMap._files = {};
+	destiny.versions[v].routeMap._files = {}; // map by [file][httpMethod] to content
 
 	buildMapRecursive(versionPath, destiny.versions[v].routeMap);
 
@@ -321,6 +327,28 @@ function buildMapRecursive(versionPath, obj) {
 			var i = file.indexOf('.js'); // Remove .js
 			file = file.substring(0, i);
 
+			var tokens = file.split(","); // 0 is the file, 1+ is the supported httpMethod
+			file = tokens[0];
+
+			if (tokens.length == 1) {
+				tokens.push("GET");
+			}
+
+			for (var i = 1; i < tokens.length; i++) {
+				var httpMethod = tokens[i];
+				if (httpMethod === '') {
+					httpMethod = 'GET';
+					tokens[i] = httpMethod;
+				}
+				if (httpMethod != "GET" && 
+					httpMethod != "POST" &&
+					httpMethod != "PUT" &&
+					httpMethod != "DELETE") {
+
+					throw "Invalid http method " + httpMethod + " for " + filePath;
+				}				
+			}
+
 			var restParamName = undefined;
 			var wI = file.indexOf('$');
 			if (wI !== -1) {
@@ -338,10 +366,18 @@ function buildMapRecursive(versionPath, obj) {
 					newObj.restParamName = restParamName;
 				}
 
-				newObj._files['$'] = {
-					filename: filePath,
-					content: fs.readFileSync(path.join(versionPath, filePath))
-				};
+				if (newObj._files['$'] === undefined) {
+					newObj._files['$'] = {};
+				}
+
+				var content = fs.readFileSync(path.join(versionPath, filePath));
+				for (var i = 1; i < tokens.length; i++) {
+					var httpMethod = tokens[i];
+					newObj._files['$'][httpMethod] = {
+						filename: filePath,
+						content: content
+					};					
+				}
 			} else {
 
 				if (file.indexOf("$") === 0) {
@@ -351,9 +387,17 @@ function buildMapRecursive(versionPath, obj) {
 					file = "$";
 				}
 
-				obj._files[file.substring(0, i)] = {
-					filename: filePath,
-					content: fs.readFileSync(path.join(versionPath, filePath))
+				if (obj._files[file] === undefined) {
+					obj._files[file] = {};
+				}
+
+				var content = fs.readFileSync(path.join(versionPath, filePath));
+				for (var i = 1; i < tokens.length; i++) {
+					var httpMethod = tokens[i];
+					obj._files[file][httpMethod] = {
+						filename: filePath,
+						content: content
+					}
 				}
 			}
 		}

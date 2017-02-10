@@ -37,7 +37,7 @@ module.exports = {
 			testAuthorized = true;
 		}
 
-		var sources = sails._destiny.findEndpointFromPath(path, testAuthorized);
+		var sources = sails._destiny.findEndpointFromPath(path, req.method, testAuthorized);
 
 		if (!sources) {
 			return res.notFound();
