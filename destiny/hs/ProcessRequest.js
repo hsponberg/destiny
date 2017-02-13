@@ -1179,7 +1179,7 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 		level = this.LOG._level.default;
 		msg = tagOrMsg;
 	} else {
-		level = this.LOG._level[tagOrMsg];
+		level = this.walkTreeForLevel(tagOrMsg);
 		if (level === undefined) {
 			level = this.LOG._level.default;
 		} else {
@@ -1208,6 +1208,18 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 			msg: msg
 		});
 	}
+}
+
+ProcessRequest.prototype.walkTreeForLevel = function(tag) {
+
+	var level = this.LOG._level[tag];
+	var i = tag.lastIndexOf('.');
+	while (level === undefined && i !== -1) {
+		tag = tag.substring(0, i);
+		level = this.LOG._level[tag];
+		i = tag.lastIndexOf('.');
+	}
+	return level;
 }
 
 ProcessRequest.prototype.initContext = function(log) {
