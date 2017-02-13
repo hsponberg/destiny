@@ -427,6 +427,8 @@ ProcessRequest.prototype.makeCallCachePut = function(key, value, expirationInSec
 
 ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, spec) {
 
+	this.workflow._callsInProgressMeta[endpointProcessId].startTime = Date.now();
+
 	var saveEndpoint = endpoint;
 
 	var self = this;
@@ -559,13 +561,16 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 			status.headers = res.headers;
 
 			if (status.code >= 200 && status.code < 300) {
-				self.processResults(endpointProcessId, saveEndpoint, status, body, spec);
+				self.processResults(endpointProcessId, saveEndpoint, status, body, spec, host + path);
 			} else {
 				self.processNotOk(endpointProcessId, status.code, undefined, body, spec.allowError, host + path);
 			}
 		});
 	});
 	req.on('error', function(error) {
+		if (!self.shouldProcess(endpointProcessId)) {
+			return;
+		}
 		self.processNotOk(endpointProcessId, 0, error, undefined, spec.allowError, host + path);
 	});
 	if (options.method.toLowerCase() == "post") {
@@ -589,6 +594,8 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 
 ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint, spec, mock, latency, statusCode, type) {
 
+	this.workflow._callsInProgressMeta[endpointProcessId].startTime = Date.now();
+
 	type = (type === undefined) ? '' : type;
 
 	var self = this;
@@ -607,7 +614,7 @@ ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint,
 				status.code = statusCode;
 
 				if (statusCode >= 200 && statusCode < 300) {
-					self.processResults(endpointProcessId, endpoint, status, mock, spec);
+					self.processResults(endpointProcessId, endpoint, status, mock, spec, type + endpoint);
 				} else {
 					self.processNotOk(endpointProcessId, status.code, undefined, mock, spec.allowError, type + endpoint);
 				}
@@ -680,9 +687,21 @@ ProcessRequest.prototype.interceptResults = function(mockResult, mock, endpointP
 	}
 };
 
-ProcessRequest.prototype.processResults = function(endpointProcessId, endpoint, status, response, spec) {
+ProcessRequest.prototype.setCallEndTime = function(endpointProcessId, dependUrl, timedOut) {
+	if (this.workflow._callsInProgressMeta[endpointProcessId].endTime === undefined) {
+		this.workflow._callsInProgressMeta[endpointProcessId].endTime = Date.now();		
+		this.workflow._callsInProgressMeta[endpointProcessId].dependUrl = dependUrl;
+		if (timedOut) {
+			this.workflow._callsInProgressMeta[endpointProcessId].timedOut = true;
+		}
+	}
+}
+
+ProcessRequest.prototype.processResults = function(endpointProcessId, endpoint, status, response, spec, dependUrl) {
 
 	var self = this;
+
+	self.setCallEndTime(endpointProcessId, dependUrl);
 
 	var processResults = function() {
 		self.safe(self.source.currentEndpoint, 'results("' + endpointProcessId + '")', function() { 
@@ -743,6 +762,8 @@ ProcessRequest.prototype.processTimeout = function(endpointProcessId, allowTimeo
 
 	var self = this;
 
+	self.setCallEndTime(endpointProcessId, dependUrl, true);
+
 	this.logHttpError('Dependpoint timed out', {
 		dependUrl: dependUrl,
 		dependTimeout: timeout
@@ -775,6 +796,8 @@ ProcessRequest.prototype.processTimeoutHelper = function(endpointProcessId, allo
 ProcessRequest.prototype.processNotOk = function(endpointProcessId, code, error, response, allowError, dependUrl) {
 
 	var self = this;
+
+	self.setCallEndTime(endpointProcessId, dependUrl); 
 
 	this.logHttpError('Dependpoint not ok', {
 		dependUrl: dependUrl,
@@ -943,22 +966,35 @@ ProcessRequest.prototype.checkOutput = function() {
 
 ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 
-	var duration = Date.now() - this.startTime;
-	if (duration > sails.config.destiny.httpLog.durationWarningLimit) {
-		this.logHttpError('Duration exceeded limit', {
-			duration: duration,
-			durationLimit: sails.config.destiny.httpLog.durationWarningLimit
-		});
-	}
-
-	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
-
 	if (this.workflow.hasRenderedResponse()) {
 		return;
 	}
 
 	this.workflow._finalizing = true;
 	this.workflow._renderedResponse = true;
+
+	var duration = Date.now() - this.startTime;
+	if (duration > sails.config.destiny.httpLog.durationWarningLimit) {
+		var props = {			
+			duration: duration,
+			durationLimit: sails.config.destiny.httpLog.durationWarningLimit,
+			dependPoints: []
+		};
+		for (var i in this.workflow._callsInProgressMeta) {
+			var duration = this.workflow._callsInProgressMeta[i].endTime - this.workflow._callsInProgressMeta[i].startTime;
+			var obj = {
+				dependPoint: this.workflow._callsInProgressMeta[i].dependUrl,
+				duration: duration
+			};
+			if (this.workflow._callsInProgressMeta[i].timedOut) {
+				obj.timedOut = true;
+			}
+			props.dependPoints.push(obj);
+		}
+		this.logHttpError('Duration exceeded limit', props);
+	}
+
+	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
 
 	if (this.workflow.hasError()) {
 
@@ -1024,6 +1060,7 @@ ProcessRequest.prototype.renderError = function(errorCode, errorMessage, moreErr
 ProcessRequest.prototype.initWorkflow = function(self) {
 	var workflow = {
 		_callsInProgress : {},
+		_callsInProgressMeta : {},
 		_cacheCallsInProgress : {},
 		_callMocks : {},
 		_output : {},
@@ -1055,7 +1092,8 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 				}
 				endpointProcessId = (endpointProcessId === undefined) ? endpoint : endpointProcessId;
 				self.workflow._callsInProgress[endpointProcessId] = true;
-				self.makeCall(endpointProcessId, endpoint, spec);			
+				self.workflow._callsInProgressMeta[endpointProcessId] = {};
+				self.makeCall(endpointProcessId, endpoint, spec);	
 			}
 		},
 		output : function(param, value) {
