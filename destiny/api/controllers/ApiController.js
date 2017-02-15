@@ -233,7 +233,7 @@ function findMock(keyPathArray, cb) {
 	});
 }
 
-function listEndpointsRecursive(obj, path, list, restParamMap) {
+function listEndpointsRecursive(obj, path, list, restParamMap, hasRestParam) {
 
 	for (k in obj._files) {
 		if (k == "_endPoints") {
@@ -248,6 +248,9 @@ function listEndpointsRecursive(obj, path, list, restParamMap) {
 				basePath += '/$';
 			}
 			restParamMap[filePath] = basePath + obj.restParamName;
+		} 
+		if (hasRestParam) {
+			restParamMap[filePath] = restParamMap[path] + '/' + k;
 		}
 		var mocksMap = findMocksRecursive(sails._destiny.mock.routeMap, filePath.split('/'), 1, '_mocks');
 		var mocks = [];
@@ -262,6 +265,7 @@ function listEndpointsRecursive(obj, path, list, restParamMap) {
 
 	for (k in obj) {
 		var filePath = path + '/' + k;
+		var hasRestParam = false;
 		if (k == "$" && obj.restParamName !== undefined) {
 			var basePath = restParamMap[path];
 			if (basePath === undefined) {
@@ -270,11 +274,12 @@ function listEndpointsRecursive(obj, path, list, restParamMap) {
 				basePath += '/$';
 			}
 			restParamMap[filePath] = basePath + obj.restParamName;
+			hasRestParam = true;
 		}
 		if (k == '_files' || k == "restParamName") {
 			continue;
 		}
-		listEndpointsRecursive(obj[k], filePath, list, restParamMap);
+		listEndpointsRecursive(obj[k], filePath, list, restParamMap, hasRestParam);
 	}
 }
 

@@ -491,12 +491,32 @@ function buildMockMapRecursive(versionPath, obj, folderExt, prop, allowedFileTyp
 		if (i != -1) {
 			pathName = file.substring(0, i);
 		}
+
+		var hasRestIdInPath = false;
+		i = file.indexOf('$');
+		if (i !== -1) {
+			hasRestIdInPath = true;
+			pathName = file.substring(0, i);
+		}
+
 		var o = obj[pathName];
 		if (!o) {
 			o = {};
 			o[prop] = {};
 			obj[pathName] = o;
 		}
+
+		if (hasRestIdInPath) {
+			pathName = "$";
+			var o2 = o[pathName];
+			if (!o2) {
+				o2 = {};
+				o2[prop] = {};
+				o[pathName] = o2;
+			}
+			o = o2;
+		}
+
 		if (file.endsWith('.' + folderExt)) {
 			addMockFiles(path.join(versionPath, file), o, prop, allowedFileTypes);
 		} else {
