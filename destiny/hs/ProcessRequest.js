@@ -155,8 +155,8 @@ ProcessRequest.prototype.processHttpHeaderParameters = function() {
 
 ProcessRequest.prototype.callEndpointRequest = function() {
 	var self = this;
-	this.safe(this.source.currentEndpoint, "request()", function() { 
-		self.LOG.debug("destiny.request", "Request to " + self.req.baseUrl + "" + self.req.originalUrl);
+	this.safe(this.source.currentEndpoint, "request()", function() {
+		self.LOG.debug("destiny.request", "Request for {0}: {1}", self.req.baseUrl, self.req.originalUrl);
 		self.context._request(self.workflow.req, self.workflow); 
 	});
 	this.renderResponseIfReady();
@@ -747,7 +747,7 @@ ProcessRequest.prototype.processResults = function(endpointProcessId, endpoint, 
 
 ProcessRequest.prototype.processResultsHelper = function(endpointProcessId, status, response) {
 
-	this.LOG.debug("destiny.dependResult", "Result for " + endpointProcessId + ": " + JSON.stringify(response));
+    this.LOG.debug("destiny.dependResult", "Result for {0}: {1}", endpointProcessId, response);
 	this.context._processResultsMap[endpointProcessId](status, response, this.workflow);
 	this.workflow._callsInProgress[endpointProcessId] = false;
 	this.renderResponseIfReady();
@@ -779,11 +779,11 @@ ProcessRequest.prototype.processTimeout = function(endpointProcessId, allowTimeo
 
 ProcessRequest.prototype.processTimeoutHelper = function(endpointProcessId, allowTimeout) {
 
+    this.LOG.debug("destiny.processException", "timeout for: {0}.", endpointProcessId);
 	if (this.context._processExceptionMap[endpointProcessId]) {
 		var status = {};
 		status.code = 0;
 		status.timedOut = true;
-		this.LOG.debug("destiny.processException", "Timeout for " + endpointProcessId);
 		this.context._processExceptionMap[endpointProcessId](status, undefined, this.workflow);
 	} else if (!allowTimeout) {
 		this.LOG.info("destiny", "request timed out: {0}", endpointProcessId);
@@ -809,7 +809,6 @@ ProcessRequest.prototype.processNotOk = function(endpointProcessId, code, error,
 	});	
 
 	self.safe(self.source.currentEndpoint, 'exception("' + endpointProcessId + '")', function() { 
-		self.LOG.debug("destiny.processException", "endpoint " + endpointProcessId + " failed code: " + JSON.stringify(code) + " error: " + error + " response: " + JSON.stringify(response));
 		self.processNotOkHelper(endpointProcessId, code, error, response, allowError);
 	});
 	this.workflow._callsInProgress[endpointProcessId] = false;
@@ -817,13 +816,13 @@ ProcessRequest.prototype.processNotOk = function(endpointProcessId, code, error,
 
 ProcessRequest.prototype.processNotOkHelper = function(endpointProcessId, code, error, response, allowError) {
 
+    this.LOG.debug("destiny.processException", "request error for: {0}. {1} {2} response: {3}", endpointProcessId, code, error, response);
 	if (this.context._processExceptionMap[endpointProcessId]) {
 		var status = {};
 		status.code = code;
 		status.error = error;
 		this.context._processExceptionMap[endpointProcessId](status, response, this.workflow);
 	} else if (!allowError) {
-		this.LOG.debug("destiny", "request error for: {0}. {1} {2}", endpointProcessId, code, error);
 		this.workflow._error = { error: "error", msg: "request error for: " + endpointProcessId };
 	} else {
 		// Ignore
@@ -1001,6 +1000,7 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
 
 	if (this.workflow.hasError()) {
+		this.LOG.debug("destiny.response", "Error response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._error);
 
 		this.logHttpError('Server error', {
 			code: this.workflow._error.code,
@@ -1016,7 +1016,7 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 			this.res.serverError(this.workflow._error);			
 		}
 	} else {
-		this.LOG.debug("destiny.response", "Response for " + this.req.baseUrl + "" + this.req.originalUrl + ": " + JSON.stringify(this.workflow._output));
+		this.LOG.debug("destiny.response", "Response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._output);
 		this.res.set(this.workflow._outputHeaders);
 
 		this.res.ok(this.workflow._output);
@@ -1087,7 +1087,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			return self.workflow._renderedResponse;
 		},
 		call : function(endpoint, spec, endpointProcessId) {
-			self.LOG.debug("destiny.call", "Call to " + endpoint + " ids:" + JSON.stringify(spec.restIds));
+			self.LOG.debug("destiny.call", "Call {0} with ids:{1}", endpoint, spec.restIds);
 			if (self.workflow._finalizing) {
 				return self.renderError("server", "call not allowed after finalizing",
 					"call not allowed after finalizing: " + endpoint);
@@ -1233,7 +1233,11 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 		return;
 	}
 	if (typeof msg == "object") {
-		msg = JSON.stringify(msg, true, 2);
+		if (sails.config.destiny.logPrettyFormat == true) {
+			msg = JSON.stringify(msg, true, 2);
+		} else {
+			msg = JSON.stringify(msg);
+		}
 	} else if (typeof msg == "string") {
 		msg = apiUtil.format(msg, arguments, 2);	
 	}
@@ -1242,7 +1246,7 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 	} else {
 		msg = " " + msg;
 	}
-	console.log(mode + msg);
+	console.log(new Date() + " " + mode + "\t" + msg);
 
 	var httpLoggingThreshold = this.LOG._httpAppLoggingThreshold;
 	if (threshold >= httpLoggingThreshold) {
