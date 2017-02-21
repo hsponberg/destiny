@@ -52,7 +52,9 @@ ProcessRequest.prototype.processRequest = function(source) {
 	} else {
 		if (this.context.output.type === undefined) {
 			this.context.output.type = "object;"
-		} else if (!(	this.context.output.type === "array" ||
+		} else if (!(	this.context.output.type === "raw" ||
+						this.context.output.type === "string" ||
+						this.context.output.type === "array" ||
 						this.context.output.type === "object") ) {
 			return this.renderError("server_error", "var output type is not valid in " + endpoint.filename);
 		}
@@ -936,6 +938,20 @@ ProcessRequest.prototype.checkType = function(k, val, type, mode) {
 
 ProcessRequest.prototype.checkOutput = function() {
 
+	if (this.context.output.type == "raw") {
+		return;
+	}
+
+	if (this.context.output.type == "string") {
+
+		if (!util.isString(this.workflow._output)) {
+			
+			return this.renderError("server", "output must be a string");
+		}
+
+		return;
+	}
+
 	if (this.context.output.type == "array") {
 
 		if (!util.isArray(this.workflow._output)) {
@@ -1097,6 +1113,22 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			}
 		},
 		output : function(param, value) {
+
+			if (self.context.output.type == "raw") {
+				self.workflow._output = param;
+				return;
+			}
+
+			if (self.context.output.type == "string") {
+				if (!util.isString(param)) {
+					return self.renderError("server", "output must be a string");
+				}
+				if (util.isString(self.workflow._output)) {
+					self.LOG.warn("destiny", "output already written");
+				}
+				self.workflow._output = param;
+				return;
+			}
 
 			if (self.context.output.type == "array") {
 				if (!util.isArray(param)) {
