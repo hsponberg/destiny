@@ -313,6 +313,9 @@ ProcessRequest.prototype.makeCall = function(endpointProcessId, endpoint, spec) 
 			results.mock.mock = testConfig.mock;
 			results.mock.latency = (testConfig.latency === undefined) ? 0 : testConfig.latency;
 			results.mock.statusCode = (testConfig.status === undefined) ? 200 : testConfig.status;
+			if (testConfig.headers) {
+				results.mock.headers = testConfig.headers;
+			}
 			return this.makeMockOrRealCall(endpointProcessId, endpoint, spec, key, results.mock, makeRealCall);
 		}
 	} else if (this.findMock) {
@@ -371,7 +374,7 @@ ProcessRequest.prototype.makeMockOrRealCall = function(endpointProcessId, endpoi
 			return self.respondWithJsMock(endpointProcessId, endpoint, spec, mock, resultsMock);
 		} else {
 			var content = JSON.parse(mock.content);
-			return self.respondWithMock(endpointProcessId, endpoint, spec, content, resultsMock.latency, resultsMock.statusCode);
+			return self.respondWithMock(endpointProcessId, endpoint, spec, content, resultsMock.latency, resultsMock.statusCode, resultsMock.headers);
 		}					
 	} else {
 		return makeRealCall();
@@ -595,7 +598,7 @@ ProcessRequest.prototype.makeRealCall = function(endpointProcessId, endpoint, sp
 	}
 }
 
-ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint, spec, mock, latency, statusCode, type) {
+ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint, spec, mock, latency, statusCode, headers, type) {
 
 	this.workflow._callsInProgressMeta[endpointProcessId].startTime = Date.now();
 
@@ -615,6 +618,7 @@ ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint,
 
 				var status = {};
 				status.code = statusCode;
+				status.headers = headers;
 
 				if (statusCode >= 200 && statusCode < 300) {
 					self.processResults(endpointProcessId, endpoint, status, mock, spec, type + endpoint);
@@ -654,7 +658,7 @@ ProcessRequest.prototype.respondWithJsMock = function(endpointProcessId, endpoin
 		content = context.getResults(spec.params, resultsMock.statusCode);
 	});
 
-	return self.respondWithMock(endpointProcessId, endpoint, spec, content, resultsMock.latency, resultsMock.statusCode, '[JS] ');
+	return self.respondWithMock(endpointProcessId, endpoint, spec, content, resultsMock.latency, resultsMock.statusCode, resultsMock.headers, '[JS] ');
 }
 
 ProcessRequest.prototype.interceptResults = function(mockResult, mock, endpointProcessId, spec, status, response) {
