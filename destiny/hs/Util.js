@@ -8,7 +8,7 @@ module.exports = {
 	    return str.replace(/\{(\d+)\}/g, function(v) {
 	    	var i = parseInt(v.substring(1));
 	    	if (args[i + offset] !== undefined) {
-	    		return args[i + offset];
+	    		var arg = args[i + offset];
 	    		if (typeof arg == "object") {
 	    			if (sails.config.destiny.logPrettyFormat == true) {
 	    				arg = JSON.stringify(arg, true, 2);
