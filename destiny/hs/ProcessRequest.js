@@ -372,6 +372,8 @@ ProcessRequest.prototype.makeMockOrRealCall = function(endpointProcessId, endpoi
 	if (mock) {
 		if (mock.type == "js") {
 			return self.respondWithJsMock(endpointProcessId, endpoint, spec, mock, resultsMock);
+		} else if (mock.type == "raw") {
+			return self.respondWithMock(endpointProcessId, endpoint, spec, String(mock.content), resultsMock.latency, resultsMock.statusCode, resultsMock.headers);
 		} else {
 			var content = JSON.parse(mock.content);
 			return self.respondWithMock(endpointProcessId, endpoint, spec, content, resultsMock.latency, resultsMock.statusCode, resultsMock.headers);
