@@ -460,7 +460,7 @@ function buildDependencyMockMap(version, versionPath) {
 	var obj = destiny.mockDependencies.routeMap[version] = {};
 	obj._mocks = {};
 
-	buildMockMapRecursive(versionPath, obj, "mock", "_mocks", ["json", "js"]);
+	buildMockMapRecursive(versionPath, obj, "mock", "_mocks", ["json", "js", "raw"]);
 }
 
 function buildDependencyInterceptorsMap(versionPath) {
@@ -539,6 +539,8 @@ function addMockFiles(dir, obj, prop, allowedFileTypes) {
 			type = "json";
 		} else if (file.endsWith(".js")) {
 			type = "js";
+		} else if (file.endsWith(".raw")) {
+			type = "raw";
 		} else {
 			throw "not supported";
 		}
