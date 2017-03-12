@@ -358,6 +358,12 @@ function buildMapRecursive(versionPath, obj) {
 				}
 			}
 
+			var filename = path.join(versionPath, filePath);
+			// correct file path should be from the root of the project so debugging works fine
+			var ind = filename.indexOf("/endpoints");
+			if (ind > 0) {
+				filename = filename.substring(ind);
+			}
 			if (file.indexOf("$") > 0 && file.length > 1) { // contains $ and is not just $ (doesn't start with $)
 				
 				var newObj = getOrCreateIdGroup(obj, file);
@@ -374,7 +380,7 @@ function buildMapRecursive(versionPath, obj) {
 				for (var i = 1; i < tokens.length; i++) {
 					var httpMethod = tokens[i];
 					newObj._files['$'][httpMethod] = {
-						filename: filePath,
+						filename: filename,
 						content: content
 					};					
 				}
@@ -395,7 +401,7 @@ function buildMapRecursive(versionPath, obj) {
 				for (var i = 1; i < tokens.length; i++) {
 					var httpMethod = tokens[i];
 					obj._files[file][httpMethod] = {
-						filename: filePath,
+						filename: filename,
 						content: content
 					}
 				}
