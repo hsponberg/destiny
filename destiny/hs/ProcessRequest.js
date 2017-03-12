@@ -1284,7 +1284,23 @@ ProcessRequest.prototype.log = function(threshold, mode, tagOrMsg, msg, argument
 	} else {
 		msg = " " + msg;
 	}
-	console.log(new Date() + " " + mode + "\t" + msg);
+	
+	var color;
+	switch (threshold) {
+		case this.LOG._kLevelError:
+			color = "\x1b[31m%s\x1b[0m"; // red
+			break;
+		case this.LOG._kLevelWarn:
+			color = "\x1b[33m%s\x1b[0m"; // yellow
+			break;
+		case this.LOG._kLevelInfo:
+			color = "\x1b[32m%s\x1b[0m"; // green
+			break;
+		default:
+			color = "\x1b[36m%s\x1b[0m"; // cyan
+			break;
+	}
+	console.log(color, new Date() + " " + mode + "\t" + msg);
 
 	var httpLoggingThreshold = this.LOG._httpAppLoggingThreshold;
 	if (threshold >= httpLoggingThreshold) {
