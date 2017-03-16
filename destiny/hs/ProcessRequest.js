@@ -1019,6 +1019,22 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		this.logHttpError('Duration exceeded limit', props);
 	}
 
+	var code = 200;
+	if (this.workflow.hasError()) {
+		if (this.workflow._error.code !== undefined) {
+			code = this.workflow._error.code;
+		} else {
+			code = 500;
+		}
+	}
+	if (sails.config.destiny.httpLog.logEveryRequest) {
+		var props = {
+			duration: duration,
+			code: code
+		}
+		this.logHttpError('req handled', props);	
+	}
+
 	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
 
 	if (this.workflow.hasError()) {
