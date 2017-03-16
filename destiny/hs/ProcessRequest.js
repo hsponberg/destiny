@@ -924,6 +924,13 @@ ProcessRequest.prototype.castInputParam = function(val, k, type) {
 		} else {
 			result.val = +val;
 		}
+	} else if (type == "array") {
+		if (val.constructor === Array) {
+			result.val = val;
+		} else {
+			this.renderError("input", "input is wrong type (" + type + "), was: " + k + ' = ' + val);
+			result.error = true;
+		}
 	} else {
 		this.renderError("server", "input type (" + type + ") is not supported");
 		result.error = true;
