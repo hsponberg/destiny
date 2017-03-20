@@ -305,9 +305,12 @@ ProcessRequest.prototype.makeCall = function(endpointProcessId, endpoint, spec) 
 
 		self.workflow._callMocks[endpointProcessId] = {}; // no interceptor allowed in testing
 
+		var testConfig = this.testConfig[endpointProcessId.toUpperCase()];
+		if (!testConfig) {
+			testConfig = this.testConfig[key];
+		}
 		// If no testConfig then make real call
-		var testConfig = this.testConfig[key];
-		if (testConfig) {	
+		if (testConfig) {
 			var results = {};
 			results.mock = {};
 			results.mock.mock = testConfig.mock;
