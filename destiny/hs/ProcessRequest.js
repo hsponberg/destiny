@@ -5,6 +5,8 @@ var querystring = require('querystring');
 var util = require('util');
 var apiUtil = require('../hs/Util');
 var uuid = require('node-uuid');
+var path = require('path');
+var fs = require('fs');
 
 var responseCacheKey = undefined;
 
@@ -197,20 +199,20 @@ ProcessRequest.prototype.checkCache = function() {
 	});
 }
 
-ProcessRequest.prototype.mockRequest = function(mock, result, path) {
+ProcessRequest.prototype.mockRequest = function(mock, result, path, currentEndpoint) {
 
 	var self = this;
 
 	var content;
 
 	if (mock.type == "js") {
+		var filename = currentEndpoint.replace("endpoints", "endpointsMocks");
+		// cut off 'js' ending and replace it with mock/
+		filename = filename.substring(0, filename.length - 2) + "mock/" + mock.filename;
+		var context = this.initJsMockContext(this.LOG, filename);
 
-		var context = this.initJsMockContext(this.LOG);
-
-		var self = this;
-
-		var loaded = self.safe(mock.filename, 'load', function() { 
-			vm.runInContext(mock.content, context, { filename: mock.filename, displayErrors: true, lineOffset: 0, columnOffset: 0 });
+		var loaded = self.safe(mock.filename, 'load', function() {
+			vm.runInContext(mock.content, context, { filename: filename, displayErrors: true, lineOffset: 0, columnOffset: 0 });
 		});
 
 		if (!loaded) {
@@ -646,12 +648,14 @@ ProcessRequest.prototype.respondWithMock = function(endpointProcessId, endpoint,
 
 ProcessRequest.prototype.respondWithJsMock = function(endpointProcessId, endpoint, spec, mock, resultsMock) {
 
-	var context = this.initJsMockContext(this.LOG);
+	var key = sails._destiny.dependencies.findParameter(this.source.version, endpoint);
+	var filename = "/dependMocks/" + key + ".mock/" + mock.filename;
+	var context = this.initJsMockContext(this.LOG, filename);
 
 	var self = this;
 
-	var loaded = self.safe(mock.filename, 'load', function() { 
-		vm.runInContext(mock.content, context, { filename: mock.filename, displayErrors: true, lineOffset: 0, columnOffset: 0 });
+	var loaded = self.safe(mock.filename, 'load', function() {
+		vm.runInContext(mock.content, context, { filename: filename, displayErrors: true, lineOffset: 0, columnOffset: 0 });
 	});
 
 	if (!loaded) {
@@ -1448,7 +1452,7 @@ ProcessRequest.prototype.initInterceptContext = function(log) {
 	return context;
 }
 
-ProcessRequest.prototype.initJsMockContext = function(log) {
+ProcessRequest.prototype.initJsMockContext = function(log, filename) {
 
 	var self = this;
 
@@ -1457,6 +1461,11 @@ ProcessRequest.prototype.initJsMockContext = function(log) {
 		LOG : log,
 		include: function(name) {
 			return self.source.globals[name];
+		},
+		loadJson: function(name) {
+			var testDir = filename.substring(0, filename.lastIndexOf("/") + 1);
+			var filePath = path.join(sails.config.destiny.repo, testDir, name);
+			return JSON.parse(fs.readFileSync(filePath));
 		}
 	};
 
