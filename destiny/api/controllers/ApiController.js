@@ -202,7 +202,7 @@ function respondWithMock(req, res, sources) {
 
 			var mock = sources.mocks[result.mock];
 			if (mock) {
-				new ProcessRequest(req, res).mockRequest(mock, result, sources.path);
+				new ProcessRequest(req, res).mockRequest(mock, result, sources.path, sources.currentEndpoint.filename);
 			} else {
 				return res.badRequest("No mock " + result.mock);
 			}
