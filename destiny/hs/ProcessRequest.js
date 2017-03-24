@@ -939,12 +939,12 @@ ProcessRequest.prototype.castInputParam = function(val, k, type) {
 			result.error = true;
 		}
 	} else if (type == "object") {
-        if (util.isObject(val)) {
-            result.val = val;
-        } else {
-            this.renderError("input", "input is wrong type (" + type + "), was: " + k + ' = ' + val);
-            result.error = true;
-        }
+		if (util.isObject(val)) {
+			result.val = val;
+		} else {
+			this.renderError("input", "input is wrong type (" + type + "), was: " + k + ' = ' + val);
+			result.error = true;
+		}
     } else {
 		this.renderError("server", "input type (" + type + ") is not supported");
 		result.error = true;
