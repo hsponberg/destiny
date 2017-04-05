@@ -220,7 +220,7 @@ ProcessRequest.prototype.mockRequest = function(mock, result, path, currentEndpo
 		}
 
 		self.safe(mock.filename, 'getResults("' + path + '")', function() { 
-			content = context.getResults(self.req.allParams(), result.statusCode);
+			content = context.getResults(self.req.allParams(), result);
 		});
 	} else {
 
@@ -228,7 +228,10 @@ ProcessRequest.prototype.mockRequest = function(mock, result, path, currentEndpo
 	}						
 
 	setTimeout(function() {
-		self.res.send(result.statusCode, content);						
+		if (result.headers) {
+			self.res.set(result.headers);
+		}
+		self.res.send(result.statusCode, content);
 	}, result.latency);
 }
 
@@ -664,7 +667,7 @@ ProcessRequest.prototype.respondWithJsMock = function(endpointProcessId, endpoin
 
 	var content;
 	self.safe(mock.filename, 'getResults("' + endpointProcessId + '")', function() { 
-		content = context.getResults(spec.params, resultsMock.statusCode);
+		content = context.getResults(spec.params, resultsMock);
 	});
 
 	return self.respondWithMock(endpointProcessId, endpoint, spec, content, resultsMock.latency, resultsMock.statusCode, resultsMock.headers, '[JS] ');
