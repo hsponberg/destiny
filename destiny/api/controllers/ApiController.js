@@ -51,6 +51,10 @@ module.exports = {
 
 			sources.testConfig = {};
 
+			if (req.headers["destiny-test-mock-only"] === "true") {
+				sources.testConfig.mockOnly = true;
+			}
+
 			var x = 1;
 			var testConfig = req.headers["destiny-test-" + x++];
 			while (testConfig !== undefined) {

@@ -325,6 +325,9 @@ ProcessRequest.prototype.makeCall = function(endpointProcessId, endpoint, spec) 
 				results.mock.headers = testConfig.headers;
 			}
 			return this.makeMockOrRealCall(endpointProcessId, endpoint, spec, key, results.mock, makeRealCall);
+		} else if (this.testConfig.mockOnly) {
+			self.LOG.warn("destiny", "mock not found for " + key + " and mock only mode is enabled");
+			return self.renderError("server", "mock not found for " + key + " and mock only mode is enabled");
 		}
 	} else if (this.findMock) {
 
