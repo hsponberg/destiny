@@ -21,8 +21,8 @@ module.exports.http = {
   *                                                                           *
   ****************************************************************************/
 
-  // middleware: {
-
+  middleware: {
+    compress : require('compression')(),
   /***************************************************************************
   *                                                                          *
   * The order in which middleware should be run for HTTP request. (the Sails *
@@ -71,7 +71,7 @@ module.exports.http = {
 
     // bodyParser: require('skipper')
 
-  // },
+  },
 
   /***************************************************************************
   *                                                                          *
