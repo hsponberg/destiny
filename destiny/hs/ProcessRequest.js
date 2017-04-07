@@ -4,7 +4,7 @@ var https = require('https');
 var querystring = require('querystring');
 var util = require('util');
 var apiUtil = require('../hs/Util');
-var uuid = require('node-uuid');
+var uuid = require('uuid');
 var path = require('path');
 var fs = require('fs');
 
