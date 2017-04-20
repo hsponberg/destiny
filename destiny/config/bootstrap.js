@@ -55,7 +55,10 @@ module.exports.bootstrap = function(cb) {
 		name: sails.config.destiny.appName,
 		streams: [
 		    {
-		    	path: path.resolve(sails.config.destiny.repo, logFile)
+		    	type: 'rotating-file',
+		    	path: path.resolve(sails.config.destiny.repo, logFile),
+		    	period: '1d',
+		    	count: 24
 		    }
 		  ]
 	} );
