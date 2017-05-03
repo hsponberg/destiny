@@ -1160,6 +1160,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 				if (spec === undefined) {
 					spec = {};
 				}
+				if (!spec.timeout && sails.config.destiny.defaultTimeout) {
+					spec.timeout = sails.config.destiny.defaultTimeout;
+				}
 				endpointProcessId = (endpointProcessId === undefined) ? endpoint : endpointProcessId;
 				self.workflow._callsInProgress[endpointProcessId] = true;
 				self.workflow._callsInProgressMeta[endpointProcessId] = {};
