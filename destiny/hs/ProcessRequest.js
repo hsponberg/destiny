@@ -1080,6 +1080,8 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		} else {
 			this.res.serverError(this.workflow._error);			
 		}
+	} else if (this.workflow.hasRedirect()) {
+		this.res.redirect(this.workflow._redirectUrl);
 	} else {
 		this.LOG.debug("destiny.response", "Response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._output);
 		this.res.set(this.workflow._outputHeaders);
@@ -1134,6 +1136,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_callMocks : {},
 		_output : {},
 		_error : undefined,
+		_redirectUrl : undefined,
 		_renderedResponse : false,
 		_finalizing: false,
 		_idPath: [],
@@ -1147,6 +1150,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		hasError : function() {
 			return self.workflow._error !== undefined;
+		},
+		hasRedirect : function() {
+			return self.workflow._redirectUrl !== undefined;
 		},
 		hasRenderedResponse : function() {
 			return self.workflow._renderedResponse;
@@ -1230,6 +1236,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			} else {
 				return self.workflow._outputHeadersNotInResponse[param];
 			}
+		},
+		redirect : function(url) {
+			self.workflow._redirectUrl = url;
 		},
 		error : function(errorObject) {
 			self.workflow._hasError = true;
