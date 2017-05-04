@@ -1058,6 +1058,10 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		var props = {
 			duration: duration,
 			code: code
+		};
+		if (this.workflow.hasRedirect()) {
+			props.code = 301;
+			props.redirectUrl = this.workflow._redirectUrl;
 		}
 		this.logHttpError('req handled', props);	
 	}
@@ -1081,6 +1085,7 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 			this.res.serverError(this.workflow._error);			
 		}
 	} else if (this.workflow.hasRedirect()) {
+		this.LOG.debug("destiny.response", "Redirected from {0}{1} to {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._redirectUrl);
 		this.res.redirect(this.workflow._redirectUrl);
 	} else {
 		this.LOG.debug("destiny.response", "Response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._output);
