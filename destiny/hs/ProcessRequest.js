@@ -1174,6 +1174,10 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		output : function(param, value) {
 
+			if (self.workflow._redirectUrl) {
+				return self.renderError("server", "output not allowed after redirect was called");
+			}
+
 			if (self.context.output.type == "raw") {
 				self.workflow._output = param;
 				return;
@@ -1238,6 +1242,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			}
 		},
 		redirect : function(url) {
+			if (Object.keys(self.workflow._output).length > 0) {
+				return self.renderError("server", "redirect call not allowed after data output");
+			}
 			self.workflow._redirectUrl = url;
 		},
 		error : function(errorObject) {
