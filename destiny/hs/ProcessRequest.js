@@ -1058,6 +1058,10 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		var props = {
 			duration: duration,
 			code: code
+		};
+		if (this.workflow.hasRedirect()) {
+			props.code = 301;
+			props.redirectUrl = this.workflow._redirectUrl;
 		}
 		this.logHttpError('req handled', props);	
 	}
@@ -1080,6 +1084,9 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		} else {
 			this.res.serverError(this.workflow._error);			
 		}
+	} else if (this.workflow.hasRedirect()) {
+		this.LOG.debug("destiny.response", "Redirected from {0}{1} to {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._redirectUrl);
+		this.res.redirect(this.workflow._redirectUrl);
 	} else {
 		this.LOG.debug("destiny.response", "Response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._output);
 		this.res.set(this.workflow._outputHeaders);
@@ -1134,6 +1141,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_callMocks : {},
 		_output : {},
 		_error : undefined,
+		_redirectUrl : undefined,
 		_renderedResponse : false,
 		_finalizing: false,
 		_idPath: [],
@@ -1147,6 +1155,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		hasError : function() {
 			return self.workflow._error !== undefined;
+		},
+		hasRedirect : function() {
+			return self.workflow._redirectUrl !== undefined;
 		},
 		hasRenderedResponse : function() {
 			return self.workflow._renderedResponse;
@@ -1170,6 +1181,10 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			}
 		},
 		output : function(param, value) {
+
+			if (self.workflow._redirectUrl) {
+				return self.renderError("server", "output not allowed after redirect was called");
+			}
 
 			if (self.context.output.type == "raw") {
 				self.workflow._output = param;
@@ -1233,6 +1248,12 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			} else {
 				return self.workflow._outputHeadersNotInResponse[param];
 			}
+		},
+		redirect : function(url) {
+			if (Object.keys(self.workflow._output).length > 0) {
+				return self.renderError("server", "redirect call not allowed after data output");
+			}
+			self.workflow._redirectUrl = url;
 		},
 		error : function(errorObject) {
 			self.workflow._hasError = true;
