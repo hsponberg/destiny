@@ -1086,7 +1086,8 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		}
 	} else if (this.workflow.hasRedirect()) {
 		this.LOG.debug("destiny.response", "Redirected from {0}{1} to {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._redirectUrl);
-		this.res.redirect(this.workflow._redirectUrl);
+		this.res.set('Location', this.workflow._redirectUrl);
+		this.res.send(301, 'Redirecting to ' + encodeURI(this.workflow._redirectUrl));
 	} else {
 		this.LOG.debug("destiny.response", "Response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._output);
 		this.res.set(this.workflow._outputHeaders);
