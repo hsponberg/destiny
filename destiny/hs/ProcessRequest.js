@@ -1288,6 +1288,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			if (self.workflow.hasFileToSend()) {
 				return self.renderError("server", "redirect call not allowed after sendFile call");
 			}
+			if (self.workflow.hasRedirect()) {
+				return self.renderError("server", "redirect method was already called");
+			}
 			self.workflow._redirectUrl = url;
 		},
 		sendFile : function(fileName) {
@@ -1296,6 +1299,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			}
 			if (self.workflow.hasRedirect()) {
 				return self.renderError("server", "sendFile call not allowed after redirect call");
+			}
+			if (self.workflow.hasFileToSend()) {
+				return self.renderError("server", "sendFile method was already called");
 			}
 			self.workflow._fileToSend = fileName;
 		},
