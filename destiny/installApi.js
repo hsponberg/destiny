@@ -76,7 +76,6 @@ if (result.code !== 0) {
 var list = result.stdout.slice(0, -1).split('\n');
 
 var tags = [];
-var tagI = 0;
 
 for (var i in list) {
 
@@ -113,6 +112,13 @@ fs.readdirSync("./config/env").filter(function(file) {
 		});	
 	}
 });
+
+if (currentBranch !== "master") {
+	tags.push({
+		tag: currentBranch,
+		path: currentBranch
+	});
+}
 
 for (var i in tags) {
 	processTag(i);
