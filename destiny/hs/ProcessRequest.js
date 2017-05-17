@@ -1025,56 +1025,19 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 	this.workflow._finalizing = true;
 	this.workflow._renderedResponse = true;
 
-	var duration = Date.now() - this.startTime;
-	if (duration > sails.config.destiny.httpLog.durationWarningLimit) {
-		var props = {			
-			duration: duration,
-			durationLimit: sails.config.destiny.httpLog.durationWarningLimit,
-			dependPoints: []
-		};
-		for (var i in this.workflow._callsInProgressMeta) {
-			var duration = this.workflow._callsInProgressMeta[i].endTime - this.workflow._callsInProgressMeta[i].startTime;
-			var obj = {
-				dependPoint: this.workflow._callsInProgressMeta[i].dependUrl,
-				duration: duration
-			};
-			if (this.workflow._callsInProgressMeta[i].timedOut) {
-				obj.timedOut = true;
-			}
-			props.dependPoints.push(obj);
-		}
-		this.logHttpError('Duration exceeded limit', props);
-	}
-
-	var code = 200;
-	if (this.workflow.hasError()) {
-		if (this.workflow._error.code !== undefined) {
-			code = this.workflow._error.code;
-		} else {
-			code = 500;
-		}
-	}
-	if (sails.config.destiny.httpLog.logEveryRequest) {
-		var props = {
-			duration: duration,
-			code: code
-		};
-		if (this.workflow.hasRedirect()) {
-			props.code = 301;
-			props.redirectUrl = this.workflow._redirectUrl;
-		}
-		this.logHttpError('req handled', props);	
-	}
+    this.logHttpEvent();
 
 	usingCachedValue = usingCachedValue === undefined ? false : usingCachedValue;
 
 	if (this.workflow.hasError()) {
 		this.LOG.debug("destiny.response", "Error response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._error);
 
-		this.logHttpError('Server error', {
-			code: this.workflow._error.code,
-			serverError: this.workflow._error
-		});
+		// Remove all error properties started with '_' - they considered as internal and we need them just for logging but not in response
+		for (var k in this.workflow._error) {
+			if (this.workflow._error.hasOwnProperty(k) && k.startsWith("_")) {
+				delete this.workflow._error[k];
+			}
+		}
 
 		// Server Errors are logged by Sails
 		if (this.workflow._error.code !== undefined) {
@@ -1117,7 +1080,52 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 			}
 		}		
 	}
-}
+};
+
+ProcessRequest.prototype.logHttpEvent = function() {
+	var duration = Date.now() - this.startTime;
+	var props = {
+		duration: duration,
+		code: 200
+	};
+	if (this.workflow.hasError()) {
+		if (this.workflow._error.code !== undefined) {
+			props.code = this.workflow._error.code;
+		} else {
+			props.code = 500;
+		}
+	} else if (this.workflow.hasRedirect()) {
+		props.code = 301;
+		props.redirectUrl = this.workflow._redirectUrl;
+	}
+	if (sails.config.destiny.httpLog.logEveryRequestDetails || duration > sails.config.destiny.httpLog.durationWarningLimit) {
+		props.durationLimit = sails.config.destiny.httpLog.durationWarningLimit;
+		props.dependPoints = [];
+		for (var i in this.workflow._callsInProgressMeta) {
+			var callInfo = this.workflow._callsInProgressMeta[i];
+			var obj = {
+				dependPoint: callInfo.dependUrl,
+				duration: callInfo.endTime - callInfo.startTime
+			};
+			if (callInfo.timedOut) {
+				obj.timedOut = true;
+			}
+			props.dependPoints.push(obj);
+		}
+	}
+
+	if (!this.workflow._supressLog) {
+		if (this.workflow.hasError()) {
+			props.serverError = this.workflow._error;
+			this.logHttpError('Server error', props);
+		} else if (duration > sails.config.destiny.httpLog.durationWarningLimit) {
+			this.logHttpError('Duration exceeded limit', props);
+		} else if (sails.config.destiny.httpLog.logEveryRequest) {
+			this.logHttpError('req handled', props);
+		}
+	}
+	this.workflow._supressLog = false;
+};
 
 ProcessRequest.prototype.shouldProcess = function(endpointProcessId) {
 
@@ -1149,6 +1157,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_idMap: {},
 		_outputHeaders : {},
 		_outputHeadersNotInResponse : {},
+		_supressLog : false,
 		data : {},
 		req : {
 			headers: {},
@@ -1163,8 +1172,11 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		hasRenderedResponse : function() {
 			return self.workflow._renderedResponse;
 		},
+		supressLog : function() {
+			self.workflow._supressLog = true;
+		},
 		call : function(endpoint, spec, endpointProcessId) {
-			self.LOG.debug("destiny.call", "Call {0} with ids:{1}", endpoint, spec.restIds);
+			self.LOG.debug("destiny.call", "Call {0} with ids:{1} and params {2}", endpoint, spec.restIds, spec.params);
 			if (self.workflow._finalizing) {
 				return self.renderError("server", "call not allowed after finalizing",
 					"call not allowed after finalizing: " + endpoint);
