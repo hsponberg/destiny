@@ -51,17 +51,25 @@ module.exports.bootstrap = function(cb) {
 	}
 	logFile += '.' + sails.config.destiny.httpLog.fileExtension;
 
-	destiny.httpLog = bunyan.createLogger( { 
+	var logConfig = {
+		type: 'rotating-file',
+		path: path.resolve(sails.config.destiny.repo, logFile),
+		period: '1d',
+		count: 24
+	};
+	if (sails.config.destiny.httpLog.config) {
+		Object.assign(logConfig, sails.config.destiny.httpLog.config);
+	}
+	destiny.httpLog = bunyan.createLogger( {
 		name: sails.config.destiny.appName,
 		streams: [
-		    {
-		    	type: 'rotating-file',
-		    	path: path.resolve(sails.config.destiny.repo, logFile),
-		    	period: '1d',
-		    	count: 24
-		    }
-		  ]
+			logConfig
+		]
 	} );
+	if (sails.config.destiny.httpLog.cleanExtraFields) {
+		// remove hostname, pid and name from logs
+		destiny.httpLog.fields = {};
+	}
 
 	createDependencyMap();
 
