@@ -66,9 +66,16 @@ module.exports.bootstrap = function(cb) {
 			logConfig
 		]
 	} );
-	if (sails.config.destiny.httpLog.cleanExtraFields) {
-		// remove hostname, pid and name from logs
-		destiny.httpLog.fields = {};
+	// remove hostname, pid and name from logs
+	if (sails.config.destiny.httpLog.defaultBunyanFieldsToKeep) {
+		var newFields = {};
+		for (var i = 0; i < sails.config.destiny.httpLog.defaultBunyanFieldsToKeep.length; i++) {
+			var key = sails.config.destiny.httpLog.defaultBunyanFieldsToKeep[i];
+			if (destiny.httpLog.fields[key]) {
+				newFields[key] = destiny.httpLog.fields[key];
+			}
+		}
+		destiny.httpLog.fields = newFields;
 	}
 
 	createDependencyMap();
