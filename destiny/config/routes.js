@@ -39,6 +39,13 @@ module.exports.routes = {
       layout: 'layout'
     }
   },
+  '/api/apiadmin/features': {
+    policy: 'isDev',
+    view: 'features',
+    locals: {
+      layout: 'layout'
+    }
+  },
   '/api/endpoints' : {
     policy: 'isDev',
     controller: 'ApiController',
@@ -54,6 +61,11 @@ module.exports.routes = {
     controller: 'ApiController',
     action: 'dependPointEnvironments'
   },
+  '/api/features' : {
+    policy: 'isDev',
+    controller: 'ApiController',
+    action: 'features'
+  },
   'PUT /api/mock' : {
     policy: 'isDev',
     controller: 'ApiController',
@@ -68,6 +80,11 @@ module.exports.routes = {
     policy: 'isDev',
     controller: 'ApiController',
     action: 'putDependPointEnvironment'
+  },
+  'PUT /api/feature' : {
+    policy: 'isDev',
+    controller: 'ApiController',
+    action: 'putFeature'
   },
   '/api/status': {
     response: 'ok'

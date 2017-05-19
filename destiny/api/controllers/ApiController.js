@@ -186,7 +186,27 @@ module.exports = {
 				healthPool.contents = contents;
 			}
 		});
-	}
+	},
+
+    features: function (req, res) {
+        var list = [];
+        if (sails.config.destiny.apiFeatures) {
+            list = sails.config.destiny.apiFeatures;
+        }
+        res.ok(list);
+    },
+
+    putFeature: function (req, res) {
+        var path = req.param("path");
+        var sp = path.split(".");
+        var f = sails.config.destiny.apiFeatures[sp[0]];
+        if (typeof(f[sp[1]]) == 'boolean') {
+            f[sp[1]] = req.param("value") == 'true';
+        } else {
+            f[sp[1]] = req.param("value");
+        }
+        res.ok();
+    }
 };
 
 function respondWithMock(req, res, sources) {

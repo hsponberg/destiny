@@ -1,0 +1,77 @@
+<style>
+    td {
+        padding: 4px;
+        padding-left: 8px;
+    }
+    #main {
+        padding-left: 20px;
+        padding-bottom: 50px;
+    }
+    .colorEven tr:nth-child(even) {
+        background-color: #ddd;
+    }
+    .colorEven {
+        margin-bottom: 1em;
+    }
+    .textInput {
+        width: 90%
+    }
+</style>
+
+<div id="main">
+    <h1>Destiny Features Preferences</h1>
+    <div id="features" />
+</div>
+
+<script>
+    $(function() {
+        loadFeatures();
+    });
+
+    function loadFeatures() {
+        var options = {};
+        $.getJSON("/api/features", options, function(features) {
+            var buf = '';
+            for (var key in features) {
+                if (features.hasOwnProperty(key)) {
+                    var feature = features[key];
+                    buf += '<table class="colorEven" width="100%"><tr><th colspan=2 align="left">' + key + '</th></tr>';
+                    for (var prefKey in feature) {
+                        if (feature.hasOwnProperty(prefKey)) {
+                            buf += '<tr>';
+                            buf += '<td width="30%">' + prefKey + '</td>';
+                            if (typeof(feature[prefKey]) === "boolean") {
+                                buf += '<td><input type="checkbox"' + (feature[prefKey] == true ? " checked" : "") + ' class="betFeaturePreference" data-path="' + key + "." + prefKey + '" /></td>';
+                            } else {
+                                buf += '<td><input type="text" value="' + feature[prefKey] + '" class="betFeaturePreference textInput" data-path="' + key + "." + prefKey + '" /></td>';
+                            }
+                            buf += '</tr>';
+                        }
+                    }
+                    buf += "<table>"
+                }
+            }
+            $("#features").append(buf);
+
+            $(".betFeaturePreference").on("change", function() {
+                settingChanged(this);
+            });
+        });
+    }
+
+    function settingChanged(control) {
+        $.ajax({
+            type: "PUT",
+            url: "/api/feature",
+            data: {
+                path: $(control).attr("data-path"),
+                value: control.type == 'checkbox' ? $(control).is(':checked') : $(control).val()
+            }
+        }).done(function() {
+        }).fail(function(error) {
+            console.log(error);
+            alert("Unable to apply setting");
+        });
+    }
+</script>
+
