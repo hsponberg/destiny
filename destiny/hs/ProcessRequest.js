@@ -1163,7 +1163,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			headers: {},
 			params: {}
 		},
-		_metaParams : {},
+		_loggingMetaParams : {},
 		hasError : function() {
 			return self.workflow._error !== undefined;
 		},
@@ -1176,9 +1176,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		supressLog : function() {
 			self.workflow._supressLog = true;
 		},
-		setMetaParam : function(name, value) {
-			var prevValue = self.workflow._metaParams[name];
-			self.workflow._metaParams[name] = value;
+		setLoggingMetaParam : function(name, value) {
+			var prevValue = self.workflow._loggingMetaParams[name];
+			self.workflow._loggingMetaParams[name] = value;
 			return prevValue;
 		},
 		call : function(endpoint, spec, endpointProcessId) {
@@ -1536,7 +1536,7 @@ ProcessRequest.prototype.logHttpError = function(msg, props) {
 	var obj = {
 		url: self.source.path,
 		apiVersion: self.source.version,
-		meta: Object.assign(props, this.workflow._metaParams)
+		meta: Object.assign(props, this.workflow._loggingMetaParams)
 	};
 
 	for (var i in sails.config.destiny.httpHeaderParameters) {
