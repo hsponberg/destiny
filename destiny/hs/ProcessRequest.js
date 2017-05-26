@@ -1051,6 +1051,11 @@ ProcessRequest.prototype.renderResponse = function(usingCachedValue) {
 		this.LOG.debug("destiny.response", "Redirected from {0}{1} to {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._redirectUrl);
 		this.res.set('Location', this.workflow._redirectUrl);
 		this.res.send(301, 'Redirecting to ' + encodeURI(this.workflow._redirectUrl));
+	} else if (this.workflow.hasFileToSend()) {
+		this.LOG.debug("destiny.response", "Sending file {0} for {1}{2}", this.workflow._fileToSend, this.req.baseUrl, this.req.originalUrl);
+		this.res.set(this.workflow._outputHeaders);
+		var fileLocation = path.join(sails.config.destiny.repo, "resources", this.workflow._fileToSend);
+		fs.createReadStream(fileLocation).pipe(this.res);
 	} else {
 		this.LOG.debug("destiny.response", "Response for {0}{1}: {2}", this.req.baseUrl, this.req.originalUrl, this.workflow._output);
 		this.res.set(this.workflow._outputHeaders);
@@ -1151,6 +1156,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_output : {},
 		_error : undefined,
 		_redirectUrl : undefined,
+		_fileToSend : undefined,
 		_renderedResponse : false,
 		_finalizing: false,
 		_idPath: [],
@@ -1169,6 +1175,9 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		hasRedirect : function() {
 			return self.workflow._redirectUrl !== undefined;
+		},
+		hasFileToSend : function() {
+			return self.workflow._fileToSend !== undefined;
 		},
 		hasRenderedResponse : function() {
 			return self.workflow._renderedResponse;
@@ -1201,8 +1210,12 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		},
 		output : function(param, value) {
 
-			if (self.workflow._redirectUrl) {
+			if (self.workflow.hasRedirect()) {
 				return self.renderError("server", "output not allowed after redirect was called");
+			}
+
+			if (self.workflow.hasFileToSend()) {
+				return self.renderError("server", "output not allowed after sendFile was called");
 			}
 
 			if (self.context.output.type == "raw") {
@@ -1272,7 +1285,25 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 			if (Object.keys(self.workflow._output).length > 0) {
 				return self.renderError("server", "redirect call not allowed after data output");
 			}
+			if (self.workflow.hasFileToSend()) {
+				return self.renderError("server", "redirect call not allowed after sendFile call");
+			}
+			if (self.workflow.hasRedirect()) {
+				return self.renderError("server", "redirect method was already called");
+			}
 			self.workflow._redirectUrl = url;
+		},
+		sendFile : function(fileName) {
+			if (Object.keys(self.workflow._output).length > 0) {
+				return self.renderError("server", "sendFile call not allowed after data output");
+			}
+			if (self.workflow.hasRedirect()) {
+				return self.renderError("server", "sendFile call not allowed after redirect call");
+			}
+			if (self.workflow.hasFileToSend()) {
+				return self.renderError("server", "sendFile method was already called");
+			}
+			self.workflow._fileToSend = fileName;
 		},
 		error : function(errorObject) {
 			self.workflow._hasError = true;
