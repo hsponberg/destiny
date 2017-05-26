@@ -395,6 +395,7 @@ ProcessRequest.prototype.makeMockOrRealCall = function(endpointProcessId, endpoi
 }
 
 ProcessRequest.prototype.makeCallCacheGet = function(key) {
+	this.workflow._cacheCallsInProgressMeta[key].startTime = Date.now();
 
 	var self = this;
 
@@ -719,6 +720,13 @@ ProcessRequest.prototype.setCallEndTime = function(endpointProcessId, dependUrl,
 	}
 }
 
+ProcessRequest.prototype.setCacheCallEndTime = function(key, hit) {
+	if (this.workflow._cacheCallsInProgressMeta[key].endTime === undefined) {
+		this.workflow._cacheCallsInProgressMeta[key].endTime = Date.now();
+		this.workflow._cacheCallsInProgressMeta[key].hit = hit;
+	}
+};
+
 ProcessRequest.prototype.processResults = function(endpointProcessId, endpoint, status, response, spec, dependUrl) {
 
 	var self = this;
@@ -775,6 +783,7 @@ ProcessRequest.prototype.processResultsHelper = function(endpointProcessId, stat
 }
 
 ProcessRequest.prototype.processCacheGetResultsHelper = function(key, value) {
+	this.setCacheCallEndTime(key, true);
 
 	this.context._processCacheGetResultsMap[key](value, this.workflow);
 	this.workflow._cacheCallsInProgress[key] = false;
@@ -854,6 +863,7 @@ ProcessRequest.prototype.processNotOkHelper = function(endpointProcessId, code, 
 }
 
 ProcessRequest.prototype.processCacheGetExceptionHelper = function(key) {
+	this.setCacheCallEndTime(key, false);
 
 	this.context._processCacheGetExceptionMap[key](this.workflow);
 	this.workflow._cacheCallsInProgress[key] = false;
@@ -1105,8 +1115,10 @@ ProcessRequest.prototype.logHttpEvent = function() {
 	}
 	if (sails.config.destiny.httpLog.logEveryRequestDetails || duration > sails.config.destiny.httpLog.durationWarningLimit) {
 		props.durationLimit = sails.config.destiny.httpLog.durationWarningLimit;
-		props.dependPoints = [];
 		for (var i in this.workflow._callsInProgressMeta) {
+			if (!props.dependPoints) {
+				props.dependPoints = [];
+			}
 			var callInfo = this.workflow._callsInProgressMeta[i];
 			var obj = {
 				dependPoint: callInfo.dependUrl,
@@ -1116,6 +1128,18 @@ ProcessRequest.prototype.logHttpEvent = function() {
 				obj.timedOut = true;
 			}
 			props.dependPoints.push(obj);
+		}
+
+		for (var key in this.workflow._cacheCallsInProgressMeta) {
+			if (!props.cacheCalls) {
+				props.cacheCalls = [];
+			}
+			var callInfo = this.workflow._cacheCallsInProgressMeta[key];
+			props.cacheCalls.push({
+				key: key,
+				hit: callInfo.hit,
+				duration: callInfo.endTime - callInfo.startTime
+			});
 		}
 	}
 
@@ -1152,6 +1176,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 		_callsInProgress : {},
 		_callsInProgressMeta : {},
 		_cacheCallsInProgress : {},
+		_cacheCallsInProgressMeta : {},
 		_callMocks : {},
 		_output : {},
 		_error : undefined,
@@ -1329,6 +1354,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
 					"cache call not allowed after finalizing: " + endpoint);
 			} else {
 				self.workflow._cacheCallsInProgress[key] = true;
+				self.workflow._cacheCallsInProgressMeta[key] = {};
 				self.makeCallCacheGet(key);
 			}
 		},
