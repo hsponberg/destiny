@@ -438,7 +438,8 @@ function findEndpointEnvironments(v, versionPath) {
 
 	var endpoints = {};
 
-	endpoints[sails.config.destiny.dependEnvironment] = fs.readFileSync(path.join(versionPath, "_global", "dependPoints.js"));
+	endpoints.production = endpoints[sails.config.destiny.dependEnvironment] =
+		fs.readFileSync(path.join(versionPath, "_global", "dependPoints.js"));
 
 	if (v != "dev" && process.env.NODE_ENV != v) {
 		return endpoints;
