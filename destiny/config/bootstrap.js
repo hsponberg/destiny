@@ -434,32 +434,29 @@ function buildMapRecursive(versionPath, obj) {
 
 function findEndpointEnvironments(v, versionPath) {
 
-	var globalPath = path.join(versionPath, "_global");
+	var endpoints = {
+		production : fs.readFileSync(path.join(versionPath, "_global", "dependPoints.js"))
+	};
 
-	var endpoints = {};
+	if (sails.config.destiny.dependEnvironment !== "production") {
+		var globalPath = path.join(versionPath, "_global");
+		fs.readdirSync(globalPath).filter(function(file) {
 
-	endpoints.production = endpoints[sails.config.destiny.dependEnvironment] =
-		fs.readFileSync(path.join(versionPath, "_global", "dependPoints.js"));
+			if (!file.startsWith("dependPoints") || file === "dependPoints.js") {
+				return;
+			}
 
-	if (v != "dev" && process.env.NODE_ENV != v) {
-		return endpoints;
+			var i = file.indexOf('.');
+			var i2 = file.indexOf('.', i + 1);
+			if (i2 === -1 || file.indexOf('.js') !== i2) {
+				return;
+			}
+			var environment = file.substring(i + 1, i2);
+			if (v === 'dev' || environment === sails.config.destiny.dependEnvironment || environment === v) {
+				endpoints[environment] = fs.readFileSync(path.join(globalPath, file));
+			}
+		});
 	}
-
-	fs.readdirSync(globalPath).filter(function(file) {
-
-		if (!file.startsWith("dependPoints") || file == "dependPoints.js") {
-			return;
-		}
-
-		var i = file.indexOf('.');
-		var i2 = file.indexOf('.', i + 1);
-		if (i2 == -1 || file.indexOf('.js') != i2) {
-			return;
-		}
-		var environment = file.substring(i + 1, i2);
-
-		endpoints[environment] = fs.readFileSync(path.join(globalPath, file));
-	});		
 
 	return endpoints;
 }
