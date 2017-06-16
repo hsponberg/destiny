@@ -9,11 +9,11 @@
  */
 module.exports = function(req, res, next) {
 
-  // Proceed to the next policy, 
-  // or if this is the last policy, the controller
-  if (sails.config.environment !== 'production') {
-    return next();
-  }
+    // Proceed to the next policy,
+    // or if this is the last policy, the controller
+    if (sails.config.environment !== 'production') {
+        return next();
+    }
 
-  return res.notFound();
+    return res.notFound();
 };
