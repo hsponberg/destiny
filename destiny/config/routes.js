@@ -22,75 +22,75 @@
 
 module.exports.routes = {
 
-  /***************************************************************************
-  *                                                                          *
-  * Make the view located at `views/homepage.ejs` (or `views/homepage.jade`, *
-  * etc. depending on your default view engine) your home page.              *
-  *                                                                          *
-  * (Alternatively, remove this and add an `index.html` file in your         *
-  * `assets` directory)                                                      *
-  *                                                                          *
-  ***************************************************************************/
+    /***************************************************************************
+     *                                                                          *
+     * Make the view located at `views/homepage.ejs` (or `views/homepage.jade`, *
+     * etc. depending on your default view engine) your home page.              *
+     *                                                                          *
+     * (Alternatively, remove this and add an `index.html` file in your         *
+     * `assets` directory)                                                      *
+     *                                                                          *
+     ***************************************************************************/
 
-  '/api/apiadmin': {
-    policy: 'isDev',
-    view: 'homepage',
-    locals: {
-      layout: 'layout'
-    }
-  },
-  '/api/endpoints' : {
-    policy: 'isDev',
-    controller: 'ApiController',
-    action: 'endpoints'
-  },
-  '/api/dependPoints' : {
-    policy: 'isDev',
-    controller: 'ApiController',
-    action: 'dependPoints'
-  },
-  '/api/dependPointEnvironments' : {
-    policy: 'isDev',
-    controller: 'ApiController',
-    action: 'dependPointEnvironments'
-  },
-  'PUT /api/mock' : {
-    policy: 'isDev',
-    controller: 'ApiController',
-    action: 'putMock'
-  },
-  'GET /api/mock' : {
-    policy: 'isDev',
-    controller: 'MockController',
-    action: 'find'
-  },
-  'PUT /api/dependPointEnvironment' : {
-    policy: 'isDev',
-    controller: 'ApiController',
-    action: 'putDependPointEnvironment'
-  },
-  '/api/status': {
-    response: 'ok'
-  },
-  '/health/pool.txt': {
-    controller: 'ApiController',
-    action: 'healthPool'
-  },
-  '/api/*' : {
-    controller: 'ApiController',
-    action: 'request',
-    skipAssets: true,
-    skipRegex: /^\/mock$/
-  },
+    '/api/apiadmin': {
+        policy: 'isDev',
+        view: 'homepage',
+        locals: {
+            layout: 'layout'
+        }
+    },
+    '/api/endpoints': {
+        policy: 'isDev',
+        controller: 'ApiController',
+        action: 'endpoints'
+    },
+    '/api/dependPoints': {
+        policy: 'isDev',
+        controller: 'ApiController',
+        action: 'dependPoints'
+    },
+    '/api/dependPointEnvironments': {
+        policy: 'isDev',
+        controller: 'ApiController',
+        action: 'dependPointEnvironments'
+    },
+    'PUT /api/mock': {
+        policy: 'isDev',
+        controller: 'ApiController',
+        action: 'putMock'
+    },
+    'GET /api/mock': {
+        policy: 'isDev',
+        controller: 'MockController',
+        action: 'find'
+    },
+    'PUT /api/dependPointEnvironment': {
+        policy: 'isDev',
+        controller: 'ApiController',
+        action: 'putDependPointEnvironment'
+    },
+    '/api/status': {
+        response: 'ok'
+    },
+    '/health/pool.txt': {
+        controller: 'ApiController',
+        action: 'healthPool'
+    },
+    '/api/*': {
+        controller: 'ApiController',
+        action: 'request',
+        skipAssets: true,
+        skipRegex: /^\/mock$/
+    },
 
-  /***************************************************************************
-  *                                                                          *
-  * Custom routes here...                                                    *
-  *                                                                          *
-  *  If a request to a URL doesn't match any of the custom routes above, it  *
-  * is matched against Sails route blueprints. See `config/blueprints.js`    *
-  * for configuration options and examples.                                  *
-  *                                                                          *
-  ***************************************************************************/
+    /***************************************************************************
+     *                                                                          *
+     * Custom routes here...                                                    *
+     *                                                                          *
+     *  If a request to a URL doesn't match any of the custom routes above, it  *
+     * is matched against Sails route blueprints. See `config/blueprints.js`    *
+     * for configuration options and examples.                                  *
+     *                                                                          *
+     ***************************************************************************/
 
 };

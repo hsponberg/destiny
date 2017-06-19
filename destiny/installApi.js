@@ -18,29 +18,29 @@ var nodeEnv = process.env.NODE_ENV;
 fs.removeSync(outputPath);
 fs.mkdirSync(outputPath);
 
-result = shelljs.exec('git rev-parse --abbrev-ref HEAD', {silent:true});
+result = shelljs.exec('git rev-parse --abbrev-ref HEAD', {silent: true});
 
 if (result.code !== 0) {
-	console.log('Error: Unable to determine current branch. More details:');
-	console.log('\t' + result.stdout);
-	console.log('\t' + result.stderr);
-	shelljs.exit(1);
+    console.log('Error: Unable to determine current branch. More details:');
+    console.log('\t' + result.stdout);
+    console.log('\t' + result.stderr);
+    shelljs.exit(1);
 }
 
 var currentBranch = result.stdout.slice(0, -1); // Remove final \n
 
 if (currentBranch == "HEAD") {
-	console.log("Error: You are in detached HEAD state. This script requires you to be on a branch.");
-	shelljs.exit(1);
+    console.log("Error: You are in detached HEAD state. This script requires you to be on a branch.");
+    shelljs.exit(1);
 } else {
-	console.log("On " + currentBranch);
+    console.log("On " + currentBranch);
 }
 
-result = shelljs.exec('git stash create', {silent:true});
+result = shelljs.exec('git stash create', {silent: true});
 
 if (result.code !== 0) {
-	console.log('Error: Unable to stash');
-	shelljs.exit(1);
+    console.log('Error: Unable to stash');
+    shelljs.exit(1);
 }
 
 var stashCommit = result.stdout.slice(0, -1); // Remove final \n
@@ -49,28 +49,28 @@ var stashed = stashCommit.length > 0;
 
 if (stashed) {
 
-	console.log("Stashed changes");
+    console.log("Stashed changes");
 
-	result = shelljs.exec('git stash store -m "Stashing to install API" ' + stashCommit, {silent:true});
+    result = shelljs.exec('git stash store -m "Stashing to install API" ' + stashCommit, {silent: true});
 
-	if (result.code !== 0) {
-		console.log('Error: Unable to stash store');
-		shelljs.exit(1);
-	}
+    if (result.code !== 0) {
+        console.log('Error: Unable to stash store');
+        shelljs.exit(1);
+    }
 
-	result = shelljs.exec('git reset --hard', {silent:true});
+    result = shelljs.exec('git reset --hard', {silent: true});
 
-	if (result.code !== 0) {
-		console.log('Error: Unable to reset to HEAD');
-		shelljs.exit(1);
-	}
+    if (result.code !== 0) {
+        console.log('Error: Unable to reset to HEAD');
+        shelljs.exit(1);
+    }
 }
 
-result = shelljs.exec('git tag -l', {silent:true});
+result = shelljs.exec('git tag -l', {silent: true});
 
 if (result.code !== 0) {
-	console.log('Error: Git list failed');
-	shelljs.exit(1);
+    console.log('Error: Git list failed');
+    shelljs.exit(1);
 }
 
 var list = result.stdout.slice(0, -1).split('\n');
@@ -79,169 +79,169 @@ var tags = [];
 
 for (var i in list) {
 
-	if (list[i].indexOf("_api_v") == 0 || list[i].indexOf("_api_staging_v") == 0) {
+    if (list[i].indexOf("_api_v") == 0 || list[i].indexOf("_api_staging_v") == 0) {
 
-		var currentTagName = list[i];
-	    var sI = currentTagName.indexOf("_v"); 
-	    var stagingPrefix = currentTagName.indexOf("staging") == -1 ? "" : "s";
-	    var versionPath = currentTagName.substring(sI + 2); // remove _api_v or _api_staging_v
-	    var tagPath = stagingPrefix + versionPath;
+        var currentTagName = list[i];
+        var sI = currentTagName.indexOf("_v");
+        var stagingPrefix = currentTagName.indexOf("staging") == -1 ? "" : "s";
+        var versionPath = currentTagName.substring(sI + 2); // remove _api_v or _api_staging_v
+        var tagPath = stagingPrefix + versionPath;
 
-		var tag = {
-			tag: currentTagName,
-			path: tagPath
-		}
+        var tag = {
+            tag: currentTagName,
+            path: tagPath
+        }
 
-    	tags.push(tag);
+        tags.push(tag);
     }
 }
 
 fs.readdirSync("./config/env").filter(function(file) {
-	if (fs.statSync(path.join("./config/env", file)).isDirectory() ||
-		file.startsWith(".")) {
+    if (fs.statSync(path.join("./config/env", file)).isDirectory() ||
+        file.startsWith(".")) {
 
-		return;
-	}
-	var envSettings = require("./config/env/" + file).destiny;
-	var i = file.indexOf(".");
-	var env = file.substring(0, i);
-	if (envSettings.publishEnvironmentBranch && env === nodeEnv) {
-		tags.push({
-			tag: envSettings.environmentBranch,
-			path: env
-		});	
-	}
+        return;
+    }
+    var envSettings = require("./config/env/" + file).destiny;
+    var i = file.indexOf(".");
+    var env = file.substring(0, i);
+    if (envSettings.publishEnvironmentBranch && env === nodeEnv) {
+        tags.push({
+            tag: envSettings.environmentBranch,
+            path: env
+        });
+    }
 });
 
 if (currentBranch !== "master") {
-	tags.push({
-		tag: currentBranch,
-		path: currentBranch
-	});
+    tags.push({
+        tag: currentBranch,
+        path: currentBranch
+    });
 }
 
 for (var i in tags) {
-	processTag(i);
+    processTag(i);
 }
 
 exit(0); // And pop stash
 
 function processTag(index) {
 
-	var currentTag = tags[index];
-	var currentTagName = currentTag.tag;
+    var currentTag = tags[index];
+    var currentTagName = currentTag.tag;
 
-	console.log("Processing tag " + currentTagName);
+    console.log("Processing tag " + currentTagName);
 
-	var result = shelljs.exec('git checkout ' + currentTagName, {silent:true});
+    var result = shelljs.exec('git checkout ' + currentTagName, {silent: true});
 
-	if (result.code !== 0) {
-		console.log('Error: Unable to checkout ' + currentTagName);
-		exit(1);
-	}
+    if (result.code !== 0) {
+        console.log('Error: Unable to checkout ' + currentTagName);
+        exit(1);
+    }
 
     var dest = path.join(outputPath, currentTag.path, endpointPath);
     var dependMocksDest = path.join(outputPath, currentTag.path, dependMocksPath);
 
-	result = shelljs.exec('git ls-tree --full-tree -r HEAD', {silent:true});
+    result = shelljs.exec('git ls-tree --full-tree -r HEAD', {silent: true});
 
-	if (result.code !== 0) {
-		console.log('Error: Unable to checkout ' + currentTagName);
-		exit(1);
-	}
+    if (result.code !== 0) {
+        console.log('Error: Unable to checkout ' + currentTagName);
+        exit(1);
+    }
 
-	var files = result.stdout.slice(0, -1).split('\n');
-	for (var fI in files) {
-		var file = files[fI].split('\t')[1];
+    var files = result.stdout.slice(0, -1).split('\n');
+    for (var fI in files) {
+        var file = files[fI].split('\t')[1];
 
-		if (!file) {
-			continue;
-		} else if (file.startsWith("endpoints/")) {
+        if (!file) {
+            continue;
+        } else if (file.startsWith("endpoints/")) {
 
-            if (file.indexOf('/dependPoints.') != -1 && 
-            	file.indexOf('/dependPoints.js') == -1) {
-            	
-            	var i = file.indexOf(".");
-            	var i2 = file.indexOf(".", i + 1);				
-				var env = file.substring(i + 1, i2);
+            if (file.indexOf('/dependPoints.') != -1 &&
+                file.indexOf('/dependPoints.js') == -1) {
 
-            	// Another environment like uat that is not the current environment
-            	if (env != nodeEnv) {
-            		continue;
-            	}
+                var i = file.indexOf(".");
+                var i2 = file.indexOf(".", i + 1);
+                var env = file.substring(i + 1, i2);
+
+                // Another environment like uat that is not the current environment
+                if (env != nodeEnv) {
+                    continue;
+                }
             }
 
             var err = copyFile(file, dest);
             if (err) {
-            	exit(1, err);
+                exit(1, err);
             }
         } else if (file.startsWith("dependMocks/")) {
-          	var err = copyFile(file, dependMocksDest);
-          	if (err) {
-            	exit(1, err);
+            var err = copyFile(file, dependMocksDest);
+            if (err) {
+                exit(1, err);
             }
         }
-	}
+    }
 }
 
 function copyFile(file, dest) {
 
-	// Remove (.*)/ (endpoints for dependMocks)
-	var slashI = file.indexOf('/');
-	var fileWithout = file.substring(slashI);
+    // Remove (.*)/ (endpoints for dependMocks)
+    var slashI = file.indexOf('/');
+    var fileWithout = file.substring(slashI);
 
-	var dirI = fileWithout.lastIndexOf('/');
-	var dir = fileWithout.substring(0, dirI);
+    var dirI = fileWithout.lastIndexOf('/');
+    var dir = fileWithout.substring(0, dirI);
 
-	var destDir = dest + '/' + dir;
+    var destDir = dest + '/' + dir;
 
-	try {
-		fs.ensureDirSync(destDir);
-	} catch (err) {
-		return err;
-	}
+    try {
+        fs.ensureDirSync(destDir);
+    } catch (err) {
+        return err;
+    }
 
-	var dest = dest + '/' + fileWithout;
+    var dest = dest + '/' + fileWithout;
 
-	file = path.resolve(repoPath, file);
+    file = path.resolve(repoPath, file);
 
-	try {
-		fs.copySync(file, dest);
-		return;
-	} catch (err) {
-		return err;
-	}
+    try {
+        fs.copySync(file, dest);
+        return;
+    } catch (err) {
+        return err;
+    }
 }
 
 function exit(code, message) {
 
-	if (message) {
-		console.log(message);
-	}
+    if (message) {
+        console.log(message);
+    }
 
-	var result = shelljs.exec('git checkout ' + currentBranch, {silent:true});
+    var result = shelljs.exec('git checkout ' + currentBranch, {silent: true});
 
-	if (result.code !== 0) {
-		console.log('Error: Unable to checkout ' + currentBranch);
-		shelljs.exit(1);
-	}
+    if (result.code !== 0) {
+        console.log('Error: Unable to checkout ' + currentBranch);
+        shelljs.exit(1);
+    }
 
-	if (stashed) {
+    if (stashed) {
 
-		console.log("Applying and popping stashed changes");
-		result = shelljs.exec('git stash pop', {silent:true});
+        console.log("Applying and popping stashed changes");
+        result = shelljs.exec('git stash pop', {silent: true});
 
-		if (result.code !== 0) {
-			console.log('Error: Unable to pop git stash');
-			shelljs.exit(1);
-		}
-	}
+        if (result.code !== 0) {
+            console.log('Error: Unable to pop git stash');
+            shelljs.exit(1);
+        }
+    }
 
-	if (code == 0) {
-		// The API server watches lastModified.txt and reloads the endpoints
-		fs.writeFileSync(path.join(outputPath, 'lastModified.txt'), '' + new Date().getTime());
-		console.log("Done");		
-	}
+    if (code == 0) {
+        // The API server watches lastModified.txt and reloads the endpoints
+        fs.writeFileSync(path.join(outputPath, 'lastModified.txt'), '' + new Date().getTime());
+        console.log("Done");
+    }
 
-	shelljs.exit(code);
+    shelljs.exit(code);
 }
