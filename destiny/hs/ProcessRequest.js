@@ -76,6 +76,21 @@ ProcessRequest.prototype.processRequest = function(source) {
     this.processMiddleware();
 }
 
+ProcessRequest.prototype.shouldStopProcessing = function() {
+    var duration = Date.now() - this.startTime;
+    var requestTimeout = sails.config.destiny.requestTimeout;
+    if (!requestTimeout) {
+        requestTimeout = 30000;
+    }
+    if (duration > requestTimeout) {
+        this.LOG.warn("destiny", "endpoint timeout");
+        this.workflow._error = {error: 504, code: 504, msg: "Timeout"};
+        this.renderResponseIfReady();
+        return true;
+    }
+    return false;
+};
+
 ProcessRequest.prototype.processRequestAfterMiddleware = function(source) {
 
     if (this.processInput(this.req)) {
@@ -278,7 +293,7 @@ ProcessRequest.prototype.safe = function(endpoint, method, func) {
 
                 if (!lineOfCode) {
                     // Something went wrong with framework code
-                    this.LOG.error("destiny", trace);
+                    this.LOG.error("destiny", err.stack);
 
                     this.logHttpError('Server Error', {
                         trace: trace
@@ -1236,6 +1251,7 @@ ProcessRequest.prototype.initWorkflow = function(self) {
             return prevValue;
         },
         call: function(endpoint, spec, endpointProcessId) {
+            if (self.shouldStopProcessing()) return;
             self.LOG.debug("destiny.call", "Call {0} with ids:{1} and params {2}", endpoint, spec.restIds, spec.params);
             if (self.workflow._finalizing) {
                 return self.renderError("server", "call not allowed after finalizing",
